@@ -69,13 +69,13 @@ func (r *writeReducer[TSerializer, TValue]) Reduce(key []byte, receiver gomr.Shu
 }
 
 // WriteFiles groups pipeline values by file name (via Shuffle) and writes each
-// group using the provided makeWriter function. Returns a collection of produced
-// file paths.
+// group to files. By default, records are written directly; use WithMakeWriter
+// to wrap the underlying writer (e.g. with compression or framing).
+// Returns a collection of produced file paths.
 func WriteFiles[TValue any, TSerializer FileSerializer[TValue]](
 	collection gomr.Collection[TValue],
 	serializer TSerializer,
 	destPath string,
-	makeWriter func(baseWriter io.Writer) io.WriteCloser,
 	opts ...WriteFilesOption,
 ) gomr.Collection[string] {
 	cfg := &WriteFilesConfig{
@@ -88,6 +88,11 @@ func WriteFiles[TValue any, TSerializer FileSerializer[TValue]](
 	}
 	for _, o := range opts {
 		o.ApplyWriteFilesConfig(cfg)
+	}
+
+	makeWriter := cfg.MakeWriter
+	if makeWriter == nil {
+		makeWriter = func(w io.Writer) io.WriteCloser { return NewFakeWriteCloser(w) }
 	}
 
 	shuffleOpts := []gomr.ShuffleOption{
