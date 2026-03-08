@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- S3 integration tests: read from public NOAA bucket, write to local fake S3 (gofakes3), full pipeline round-trip
+
 ### Changed
 - **Breaking:** `fileio.WriteFiles` no longer takes `makeWriter` as a positional parameter; use `fileio.WithCustomWriter(...)` option instead (defaults to writing directly without wrapping)
 - Split `extensions/fileio/s3backend` into its own Go module to avoid pulling AWS SDK dependencies for projects that only use local file I/O
