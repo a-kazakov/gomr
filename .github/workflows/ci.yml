@@ -25,10 +25,10 @@ jobs:
       - name: Test
         run: go test -race -count=1 ./...
       - name: Test with coverage
-        if: matrix.go-version == '1.25'
+        if: matrix.go-version == '1.26'
         run: go test -race -count=1 -coverprofile=coverage.out -covermode=atomic ./...
       - name: Coverage report
-        if: matrix.go-version == '1.25'
+        if: matrix.go-version == '1.26'
         run: go tool cover -func=coverage.out
 
   test-extensions-fileio:
