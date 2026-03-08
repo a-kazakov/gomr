@@ -2,6 +2,7 @@ package parameters
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -107,7 +108,7 @@ func ParseInt32(s string) (int32, error) {
 	if err != nil {
 		return 0, err
 	}
-	if v > int64(^int32(0)) || v < int64(-^int32(0)-1) {
+	if v > math.MaxInt32 || v < math.MinInt32 {
 		return 0, fmt.Errorf("value %d overflows int32", v)
 	}
 	return int32(v), nil
