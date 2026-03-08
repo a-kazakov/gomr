@@ -1,6 +1,6 @@
 module github.com/a-kazakov/gomr/examples
 
-go 1.24.3
+go 1.26
 
 require (
 	github.com/a-kazakov/gomr v0.0.0
