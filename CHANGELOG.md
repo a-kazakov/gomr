@@ -24,9 +24,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Edge case tests for empty and single-element collections
 - Temp file cleanup verification for SpillBuffer
 - CI workflow with code coverage reporting
-
-### Fixed
-- Data race in Value.Resolve and Parameter.Get (atomic operations)
-- ParseInt32 overflow check (was using bitwise NOT instead of math.MaxInt32)
-- ParseCompressionAlgorithm empty case fallthrough
-- ZstdFast decompressor not handling its own compression format
