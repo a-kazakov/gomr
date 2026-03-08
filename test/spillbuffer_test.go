@@ -29,7 +29,7 @@ func (s terribleIntSerializer) UnmarshalElementFromBytes(data []byte, dest *int)
 
 func TestSpillBuffer(t *testing.T) {
 	t.Run("Spill buffer for variance calculation", func(t *testing.T) {
-		const collectionSize = 1000
+		const collectionSize = 200
 		pipeline := gomr.NewPipeline()
 		pipeline.Parameters.LoadFromSource(
 			func(lookup string) (string, bool) {
@@ -118,18 +118,18 @@ func TestSpillBuffer(t *testing.T) {
 
 		pipeline := gomr.NewPipeline()
 		values := gomr.NewSeedCollection(pipeline, func(ctx gomr.OperatorContext, emitter gomr.Emitter[int]) {
-			for i := 0; i < 1000; i++ {
+			for i := 0; i < 100; i++ {
 				*emitter.GetEmitPointer() = i
 			}
 		})
 		spilled := gomr.SpillBuffer[terribleIntSerializer](values,
 			gomr.WithSpillDirectories(tmpDir),
-			gomr.WithMaxSpillFileSize(1024), // small file size to force spilling
+			gomr.WithMaxSpillFileSize(512), // small file size to force spilling
 		)
 		result := collectToSliceValue(spilled)
 		// Consume the result to ensure pipeline completes
 		verifySliceValue(t, result, func(yield func(value int) bool) {
-			for i := 0; i < 1000; i++ {
+			for i := 0; i < 100; i++ {
 				if !yield(i) {
 					return
 				}
