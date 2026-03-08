@@ -14,3 +14,5 @@ require (
 )
 
 replace github.com/a-kazakov/gomr => ..
+
+replace github.com/a-kazakov/gomr/extensions/fileio => ../extensions/fileio
