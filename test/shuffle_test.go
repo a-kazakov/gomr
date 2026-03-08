@@ -236,6 +236,9 @@ func TestShuffle(t *testing.T) {
 		})
 	})
 
+}
+
+func TestShuffleCleanup(t *testing.T) {
 	t.Run("temp files cleaned up after shuffle", func(t *testing.T) {
 		tmpDir := t.TempDir()
 
