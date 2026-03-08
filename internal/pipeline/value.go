@@ -1,6 +1,7 @@
 package pipeline
 
 import (
+	"sync"
 	"sync/atomic"
 
 	"github.com/a-kazakov/gomr/metrics"
@@ -14,6 +15,7 @@ type Value[T any] struct {
 	Value    T
 	waitChan chan struct{}
 	done     atomic.Bool
+	once     sync.Once
 }
 
 func (v *Value[T]) GetPipeline() *Pipeline { return v.Pipeline }
@@ -36,13 +38,13 @@ func (v *Value[T]) Wait() T {
 	return v.Value
 }
 
-// Resolve sets the value and signals all waiters. Panics if called more than once.
+// Resolve sets the value and signals all waiters. Only the first call takes effect.
 func (v *Value[T]) Resolve(value T) {
-	if !v.done.CompareAndSwap(false, true) {
-		panic("Value.Resolve called more than once")
-	}
-	v.Value = value
-	close(v.waitChan)
+	v.once.Do(func() {
+		v.Value = value
+		v.done.Store(true)
+		close(v.waitChan)
+	})
 }
 
 // Ready returns a channel that is closed when the value is resolved. For use in select statements.
