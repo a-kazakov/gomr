@@ -3,6 +3,7 @@ package pipeline
 // Tests use package-internal access for: startMetricsPush, stopMetricsPush, consumed field, metricsPusher field, UserContext field on OperatorContext.
 
 import (
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -695,4 +696,74 @@ func TestMetricsPush(t *testing.T) {
 			t.Error("metricsPusher should be nil for negative interval")
 		}
 	})
+}
+
+func TestValueConcurrentWait(t *testing.T) {
+	p := NewPipeline()
+	v := NewValue[int](p, "concurrent")
+
+	const numGoroutines = 100
+	results := make([]int, numGoroutines)
+	var wg sync.WaitGroup
+	wg.Add(numGoroutines)
+
+	// Start many goroutines waiting for the value
+	for i := 0; i < numGoroutines; i++ {
+		go func(idx int) {
+			defer wg.Done()
+			results[idx] = v.Wait()
+		}(i)
+	}
+
+	// Give goroutines time to start waiting
+	time.Sleep(10 * time.Millisecond)
+
+	// Resolve the value
+	v.Resolve(42)
+
+	wg.Wait()
+
+	for i, r := range results {
+		if r != 42 {
+			t.Errorf("goroutine %d got %d, want 42", i, r)
+		}
+	}
+}
+
+func TestValueMultipleResolve(t *testing.T) {
+	p := NewPipeline()
+	v := NewValue[int](p, "multi-resolve")
+
+	// First resolve should win
+	v.Resolve(1)
+	v.Resolve(2)
+	v.Resolve(3)
+
+	if v.Wait() != 1 {
+		t.Errorf("value = %d, want 1 (first resolve)", v.Wait())
+	}
+}
+
+func TestValueConcurrentResolve(t *testing.T) {
+	p := NewPipeline()
+	v := NewValue[int](p, "concurrent-resolve")
+
+	const numGoroutines = 100
+	var wg sync.WaitGroup
+	wg.Add(numGoroutines)
+
+	for i := 0; i < numGoroutines; i++ {
+		go func(val int) {
+			defer wg.Done()
+			v.Resolve(val)
+		}(i)
+	}
+
+	wg.Wait()
+
+	// Value should be one of the resolved values (whichever got there first)
+	result := v.Wait()
+	if result < 0 || result >= numGoroutines {
+		t.Errorf("value = %d, want 0..%d", result, numGoroutines-1)
+	}
 }
