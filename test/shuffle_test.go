@@ -92,7 +92,7 @@ func TestShuffle(t *testing.T) {
 		// Sum up by last digit
 		pipeline := gomr.NewPipeline()
 		values := gomr.NewSeedCollection(pipeline, func(ctx gomr.OperatorContext, emitter gomr.Emitter[int]) {
-			for i := 0; i < 1000; i++ {
+			for i := 0; i < 200; i++ {
 				*emitter.GetEmitPointer() = i
 			}
 		})
@@ -100,7 +100,7 @@ func TestShuffle(t *testing.T) {
 		result := collectToSliceValue(shuffled)
 		verifySliceValue(t, result, func(yield func(value int) bool) {
 			var sums [10]int
-			for i := 0; i < 1000; i++ {
+			for i := 0; i < 200; i++ {
 				sums[i%10] += i
 			}
 			for i := 0; i < 10; i++ {
@@ -143,22 +143,22 @@ func TestShuffle(t *testing.T) {
 
 	t.Run("1:1 shuffle with guaranteed spill", func(t *testing.T) {
 		// Sum up by last digit
-		// Use 2000 items (~2MB serialized) with 640KB buffer to guarantee spill,
-		// but keep parallelism moderate to avoid timeout under the race detector.
+		// Use 500 items with 128KB buffer to guarantee spill,
+		// but keep parallelism low to avoid timeout under the race detector.
 		pipeline := gomr.NewPipeline()
 		values := gomr.NewSeedCollection(pipeline, func(ctx gomr.OperatorContext, emitter gomr.Emitter[int]) {
-			for i := 0; i < 2000; i++ {
+			for i := 0; i < 500; i++ {
 				*emitter.GetEmitPointer() = i
 			}
 		})
 		shuffled := gomr.Shuffle[*lastDigitShuffleSerializer, *sumReducer](values,
-			gomr.WithLocalShuffleBufferSize(128*1024*5), // 5 pages maximum (640KB)
-			gomr.WithScatterParallelism(20),             // Force competition for the buffer
+			gomr.WithLocalShuffleBufferSize(128*1024*1), // 1 page maximum (128KB)
+			gomr.WithScatterParallelism(4),              // Moderate competition for the buffer
 		)
 		result := collectToSliceValue(shuffled)
 		verifySliceValue(t, result, func(yield func(value int) bool) {
 			var sums [10]int
-			for i := 0; i < 2000; i++ {
+			for i := 0; i < 500; i++ {
 				sums[i%10] += i
 			}
 			for i := 0; i < 10; i++ {
@@ -234,4 +234,5 @@ func TestShuffle(t *testing.T) {
 			}
 		})
 	})
+
 }

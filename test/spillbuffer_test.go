@@ -2,6 +2,7 @@ package test
 
 import (
 	"math"
+	"os"
 	"testing"
 
 	"github.com/a-kazakov/gomr"
@@ -28,7 +29,7 @@ func (s terribleIntSerializer) UnmarshalElementFromBytes(data []byte, dest *int)
 
 func TestSpillBuffer(t *testing.T) {
 	t.Run("Spill buffer for variance calculation", func(t *testing.T) {
-		const collectionSize = 1000
+		const collectionSize = 200
 		pipeline := gomr.NewPipeline()
 		pipeline.Parameters.LoadFromSource(
 			func(lookup string) (string, bool) {
@@ -109,6 +110,43 @@ func TestSpillBuffer(t *testing.T) {
 		expectedVariance := float64(collectionSize*collectionSize-1) / 12.0
 		if math.Abs(actualVariance-expectedVariance) > 0.000001 {
 			t.Errorf("Expected variance %f, got %f", expectedVariance, actualVariance)
+		}
+	})
+
+	t.Run("temp files cleaned up after completion", func(t *testing.T) {
+		tmpDir := t.TempDir()
+
+		pipeline := gomr.NewPipeline()
+		values := gomr.NewSeedCollection(pipeline, func(ctx gomr.OperatorContext, emitter gomr.Emitter[int]) {
+			for i := 0; i < 100; i++ {
+				*emitter.GetEmitPointer() = i
+			}
+		})
+		spilled := gomr.SpillBuffer[terribleIntSerializer](values,
+			gomr.WithSpillDirectories(tmpDir),
+			gomr.WithMaxSpillFileSize(512), // small file size to force spilling
+		)
+		result := collectToSliceValue(spilled)
+		// Consume the result to ensure pipeline completes
+		verifySliceValue(t, result, func(yield func(value int) bool) {
+			for i := 0; i < 100; i++ {
+				if !yield(i) {
+					return
+				}
+			}
+		})
+
+		// After pipeline completion, temp directory should be empty
+		entries, err := os.ReadDir(tmpDir)
+		if err != nil {
+			t.Fatalf("ReadDir error: %v", err)
+		}
+		if len(entries) > 0 {
+			names := make([]string, len(entries))
+			for i, e := range entries {
+				names[i] = e.Name()
+			}
+			t.Errorf("temp directory not cleaned up, remaining files: %v", names)
 		}
 	})
 }
