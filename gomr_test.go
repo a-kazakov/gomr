@@ -411,9 +411,31 @@ func TestAdvanced(t *testing.T) {
 	})
 
 	t.Run("ignore", func(t *testing.T) {
-		p, coll := seedTestInts(10)
-		Ignore(coll)
+		p, coll := seedTestInts(5)
+		f0, f1 := ForkTo2(coll)
+		Ignore(f0)
+		// The other branch should still work correctly
+		val := Collect[int, int, int](
+			f1,
+			func(ctx OperatorContext, receiver CollectionReceiver[int]) int {
+				sum := 0
+				for v := range receiver.IterValues() {
+					sum += *v
+				}
+				return sum
+			},
+			func(ctx OperatorContext, intermediates []int) int {
+				total := 0
+				for _, v := range intermediates {
+					total += v
+				}
+				return total
+			},
+		)
 		p.WaitForCompletion()
+		if val.Wait() != 10 {
+			t.Errorf("sum = %d, want 10", val.Wait())
+		}
 	})
 }
 
