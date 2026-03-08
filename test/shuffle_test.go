@@ -3,6 +3,7 @@ package test
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/a-kazakov/gomr"
@@ -267,17 +268,22 @@ func TestShuffleCleanup(t *testing.T) {
 			}
 		})
 
-		// After pipeline completion, temp directory should be empty
-		entries, err := os.ReadDir(tmpDir)
-		if err != nil {
-			t.Fatalf("ReadDir error: %v", err)
-		}
-		if len(entries) > 0 {
-			names := make([]string, len(entries))
-			for i, e := range entries {
-				names[i] = e.Name()
+		// After pipeline completion, no spill files should remain.
+		// The framework may leave empty parent directories (e.g. "gomr/"),
+		// so we check that no regular files exist under tmpDir.
+		var remainingFiles []string
+		_ = filepath.Walk(tmpDir, func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
 			}
-			t.Errorf("temp directory not cleaned up, remaining files: %v", names)
+			if !info.IsDir() {
+				rel, _ := filepath.Rel(tmpDir, path)
+				remainingFiles = append(remainingFiles, rel)
+			}
+			return nil
+		})
+		if len(remainingFiles) > 0 {
+			t.Errorf("spill files not cleaned up: %v", remainingFiles)
 		}
 	})
 }
