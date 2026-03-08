@@ -11,4 +11,16 @@ func TestEmptyPipeline(t *testing.T) {
 		pipeline := gomr.NewPipeline()
 		pipeline.WaitForCompletion()
 	})
+
+	t.Run("empty seed collect", func(t *testing.T) {
+		pipeline := gomr.NewPipeline()
+		values := gomr.NewSeedCollection(pipeline, func(ctx gomr.OperatorContext, emitter gomr.Emitter[int]) {
+			// emit nothing
+		})
+		result := collectToSliceValue(values)
+		pipeline.WaitForCompletion()
+		verifySliceValue(t, result, func(yield func(value int) bool) {
+			// expect empty
+		})
+	})
 }

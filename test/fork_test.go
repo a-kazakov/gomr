@@ -34,6 +34,35 @@ func TestFork(t *testing.T) {
 		})
 	})
 
+	t.Run("empty seed fork merge collect", func(t *testing.T) {
+		pipeline := gomr.NewPipeline()
+		values := gomr.NewSeedCollection(pipeline, func(ctx gomr.OperatorContext, emitter gomr.Emitter[int]) {
+			// emit nothing
+		})
+		f1, f2 := gomr.ForkTo2(values)
+		merged := gomr.Merge([]gomr.Collection[int]{f1, f2})
+		result := collectToSliceValue(merged)
+		pipeline.WaitForCompletion()
+		verifySliceValue(t, result, func(yield func(value int) bool) {
+			// expect empty
+		})
+	})
+
+	t.Run("single element fork merge", func(t *testing.T) {
+		pipeline := gomr.NewPipeline()
+		values := gomr.NewSeedCollection(pipeline, func(ctx gomr.OperatorContext, emitter gomr.Emitter[int]) {
+			*emitter.GetEmitPointer() = 7
+		})
+		f1, f2 := gomr.ForkTo2(values)
+		merged := gomr.Merge([]gomr.Collection[int]{f1, f2})
+		result := collectToSliceValue(merged)
+		pipeline.WaitForCompletion()
+		verifySliceValue(t, result, func(yield func(value int) bool) {
+			yield(7)
+			yield(7)
+		})
+	})
+
 	t.Run("Fork to any", func(t *testing.T) {
 		pipeline := gomr.NewPipeline()
 		initial := gomr.NewSeedCollection(pipeline, func(ctx gomr.OperatorContext, emitter gomr.Emitter[int]) {

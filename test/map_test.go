@@ -84,6 +84,40 @@ func TestMap(t *testing.T) {
 		})
 	})
 
+	t.Run("empty seed map collect", func(t *testing.T) {
+		pipeline := gomr.NewPipeline()
+		values := gomr.NewSeedCollection(pipeline, func(ctx gomr.OperatorContext, emitter gomr.Emitter[int]) {
+			// emit nothing
+		})
+		mapped := gomr.Map(values, func(ctx gomr.OperatorContext, receiver gomr.CollectionReceiver[int], emitter gomr.Emitter[int]) {
+			for v := range receiver.IterValues() {
+				*emitter.GetEmitPointer() = *v * 2
+			}
+		})
+		result := collectToSliceValue(mapped)
+		pipeline.WaitForCompletion()
+		verifySliceValue(t, result, func(yield func(value int) bool) {
+			// expect empty
+		})
+	})
+
+	t.Run("single element map collect", func(t *testing.T) {
+		pipeline := gomr.NewPipeline()
+		values := gomr.NewSeedCollection(pipeline, func(ctx gomr.OperatorContext, emitter gomr.Emitter[int]) {
+			*emitter.GetEmitPointer() = 42
+		})
+		mapped := gomr.Map(values, func(ctx gomr.OperatorContext, receiver gomr.CollectionReceiver[int], emitter gomr.Emitter[int]) {
+			for v := range receiver.IterValues() {
+				*emitter.GetEmitPointer() = *v + 1
+			}
+		})
+		result := collectToSliceValue(mapped)
+		pipeline.WaitForCompletion()
+		verifySliceValue(t, result, func(yield func(value int) bool) {
+			yield(43)
+		})
+	})
+
 	t.Run("Map 1 to 3", func(t *testing.T) {
 		pipeline := gomr.NewPipeline()
 		initial := gomr.NewSeedCollection(pipeline, func(ctx gomr.OperatorContext, emitter gomr.Emitter[int]) {
