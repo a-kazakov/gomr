@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -189,18 +190,15 @@ func TestOperationMetrics(t *testing.T) {
 	t.Run("set phase concurrent", func(t *testing.T) {
 		pm := NewPipelineMetrics()
 		op := pm.AddOperation(core.OPERATION_KIND_MAP, "op")
-		done := make(chan struct{})
-		var count atomic.Int32
+		var wg sync.WaitGroup
+		wg.Add(10)
 		for i := 0; i < 10; i++ {
 			go func(phase int32) {
+				defer wg.Done()
 				op.SetPhase(phase)
-				count.Add(1)
-				if count.Load() == 10 {
-					close(done)
-				}
 			}(int32(i % 3))
 		}
-		<-done
+		wg.Wait()
 	})
 
 	t.Run("input output collections", func(t *testing.T) {
