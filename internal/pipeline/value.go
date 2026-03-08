@@ -2,6 +2,7 @@ package pipeline
 
 import (
 	"sync"
+	"sync/atomic"
 
 	"github.com/a-kazakov/gomr/metrics"
 )
@@ -13,7 +14,7 @@ type Value[T any] struct {
 	Metrics  *metrics.ValueMetrics
 	Value    T
 	waitChan chan struct{}
-	done     bool
+	done     atomic.Bool
 	once     sync.Once
 }
 
@@ -24,13 +25,13 @@ func NewValue[T any](pipeline *Pipeline, name string) *Value[T] {
 		Pipeline: pipeline,
 		waitChan: make(chan struct{}),
 	}
-	result.Metrics = pipeline.Metrics.AddValue(name, func() bool { return result.done })
+	result.Metrics = pipeline.Metrics.AddValue(name, func() bool { return result.done.Load() })
 	return result
 }
 
 // Wait blocks until the value is resolved, then returns it.
 func (v *Value[T]) Wait() T {
-	if v.done {
+	if v.done.Load() {
 		return v.Value
 	}
 	<-v.waitChan
@@ -41,7 +42,7 @@ func (v *Value[T]) Wait() T {
 func (v *Value[T]) Resolve(value T) {
 	v.once.Do(func() {
 		v.Value = value
-		v.done = true
+		v.done.Store(true)
 		close(v.waitChan)
 	})
 }
