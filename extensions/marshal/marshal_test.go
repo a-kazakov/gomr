@@ -276,7 +276,7 @@ func TestIntAs64RoundTrip(t *testing.T) {
 }
 
 func TestIntAs32RoundTrip(t *testing.T) {
-	for _, v := range []int{0, 1, -1, math.MaxInt32, math.MinInt32} {
+	for _, v := range []int{0, 1, 42, math.MaxInt32, math.MaxUint32} {
 		t.Run("", func(t *testing.T) {
 			buf := make([]byte, 4)
 			n := MarshalIntAs32(v, buf)
