@@ -734,14 +734,15 @@ func TestValueMultipleResolve(t *testing.T) {
 	p := NewPipeline()
 	v := NewValue[int](p, "multi-resolve")
 
-	// First resolve should win
 	v.Resolve(1)
-	v.Resolve(2)
-	v.Resolve(3)
 
-	if v.Wait() != 1 {
-		t.Errorf("value = %d, want 1 (first resolve)", v.Wait())
-	}
+	// Second resolve should panic
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("expected panic on second Resolve, but did not panic")
+		}
+	}()
+	v.Resolve(2)
 }
 
 func TestValueConcurrentResolve(t *testing.T) {
@@ -752,16 +753,27 @@ func TestValueConcurrentResolve(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(numGoroutines)
 
+	var panicCount atomic.Int32
 	for i := 0; i < numGoroutines; i++ {
 		go func(val int) {
 			defer wg.Done()
+			defer func() {
+				if r := recover(); r != nil {
+					panicCount.Add(1)
+				}
+			}()
 			v.Resolve(val)
 		}(i)
 	}
 
 	wg.Wait()
 
-	// Value should be one of the resolved values (whichever got there first)
+	// Exactly one goroutine should succeed; the rest should panic
+	if got := panicCount.Load(); got != numGoroutines-1 {
+		t.Errorf("panic count = %d, want %d", got, numGoroutines-1)
+	}
+
+	// Value should be one of the resolved values
 	result := v.Wait()
 	if result < 0 || result >= numGoroutines {
 		t.Errorf("value = %d, want 0..%d", result, numGoroutines-1)
