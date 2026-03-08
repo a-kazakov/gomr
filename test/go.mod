@@ -1,6 +1,6 @@
 module github.com/a-kazakov/gomr/test
 
-go 1.25.6
+go 1.26
 
 require github.com/a-kazakov/gomr v0.0.0
 
