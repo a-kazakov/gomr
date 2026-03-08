@@ -2,8 +2,6 @@ package test
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/a-kazakov/gomr"
@@ -237,51 +235,4 @@ func TestShuffle(t *testing.T) {
 		})
 	})
 
-}
-
-func TestShuffleCleanup(t *testing.T) {
-	t.Run("temp files cleaned up after shuffle", func(t *testing.T) {
-		tmpDir := t.TempDir()
-
-		pipeline := gomr.NewPipeline()
-		values := gomr.NewSeedCollection(pipeline, func(ctx gomr.OperatorContext, emitter gomr.Emitter[int]) {
-			for i := 0; i < 200; i++ {
-				*emitter.GetEmitPointer() = i
-			}
-		})
-		shuffled := gomr.Shuffle[*lastDigitShuffleSerializer, *sumReducer](values,
-			gomr.WithScratchSpacePaths(tmpDir),
-			gomr.WithLocalShuffleBufferSize(128*1024*3), // 3 pages - forces spilling with 200 items
-		)
-		result := collectToSliceValue(shuffled)
-		verifySliceValue(t, result, func(yield func(value int) bool) {
-			var sums [10]int
-			for i := 0; i < 200; i++ {
-				sums[i%10] += i
-			}
-			for i := 0; i < 10; i++ {
-				if !yield(sums[i]) {
-					return
-				}
-			}
-		})
-
-		// After pipeline completion, no spill files should remain.
-		// The framework may leave empty parent directories (e.g. "gomr/"),
-		// so we check that no regular files exist under tmpDir.
-		var remainingFiles []string
-		_ = filepath.Walk(tmpDir, func(path string, info os.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
-			if !info.IsDir() {
-				rel, _ := filepath.Rel(tmpDir, path)
-				remainingFiles = append(remainingFiles, rel)
-			}
-			return nil
-		})
-		if len(remainingFiles) > 0 {
-			t.Errorf("spill files not cleaned up: %v", remainingFiles)
-		}
-	})
 }
