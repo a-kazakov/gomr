@@ -1,8 +1,10 @@
 package gomr
 
 import (
+	"cmp"
 	"encoding/binary"
 	"os"
+	"slices"
 	"sync/atomic"
 	"testing"
 
@@ -11,6 +13,15 @@ import (
 	"github.com/a-kazakov/gomr/internal/primitives"
 	"github.com/a-kazakov/gomr/parameters"
 )
+
+func sortedEqual[T cmp.Ordered](t *testing.T, got []T, want []T) {
+	t.Helper()
+	slices.Sort(got)
+	slices.Sort(want)
+	if !slices.Equal(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
 
 // intSerializer implements core.ElementSerializer[int] for SpillBuffer tests.
 type intSerializer struct{}
@@ -98,9 +109,7 @@ func TestSeedAndMap(t *testing.T) {
 		})
 		result := collectTestSlice(mapped)
 		p.WaitForCompletion()
-		if len(result) != 5 {
-			t.Fatalf("len = %d, want 5", len(result))
-		}
+		sortedEqual(t, result, []int{0, 3, 6, 9, 12})
 	})
 
 	t.Run("map with options", func(t *testing.T) {
@@ -116,9 +125,7 @@ func TestSeedAndMap(t *testing.T) {
 		)
 		result := collectTestSlice(mapped)
 		p.WaitForCompletion()
-		if len(result) != 10 {
-			t.Fatalf("len = %d, want 10", len(result))
-		}
+		sortedEqual(t, result, []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10})
 	})
 
 	t.Run("seed with options", func(t *testing.T) {
@@ -141,9 +148,8 @@ func TestForkAndMerge(t *testing.T) {
 		r0 := collectTestSlice(forks[0])
 		r1 := collectTestSlice(forks[1])
 		p.WaitForCompletion()
-		if len(r0) != 4 || len(r1) != 4 {
-			t.Errorf("r0=%d r1=%d, want 4 each", len(r0), len(r1))
-		}
+		sortedEqual(t, r0, []int{0, 1, 2, 3})
+		sortedEqual(t, r1, []int{0, 1, 2, 3})
 	})
 
 	t.Run("fork to 2", func(t *testing.T) {
@@ -152,9 +158,8 @@ func TestForkAndMerge(t *testing.T) {
 		r0 := collectTestSlice(f0)
 		r1 := collectTestSlice(f1)
 		p.WaitForCompletion()
-		if len(r0) != 3 || len(r1) != 3 {
-			t.Errorf("r0=%d r1=%d, want 3 each", len(r0), len(r1))
-		}
+		sortedEqual(t, r0, []int{0, 1, 2})
+		sortedEqual(t, r1, []int{0, 1, 2})
 	})
 
 	t.Run("merge", func(t *testing.T) {
@@ -163,9 +168,7 @@ func TestForkAndMerge(t *testing.T) {
 		merged := Merge(forks)
 		result := collectTestSlice(merged)
 		p.WaitForCompletion()
-		if len(result) != 10 {
-			t.Errorf("merged = %d, want 10", len(result))
-		}
+		sortedEqual(t, result, []int{0, 0, 1, 1, 2, 2, 3, 3, 4, 4})
 	})
 }
 
@@ -286,12 +289,8 @@ func TestAdvanced(t *testing.T) {
 		r0 := collectTestSlice(c0)
 		r1 := collectTestSlice(c1)
 		p.WaitForCompletion()
-		if len(r0) != 4 {
-			t.Errorf("r0 len = %d, want 4", len(r0))
-		}
-		if len(r1) != 4 {
-			t.Errorf("r1 len = %d, want 4", len(r1))
-		}
+		sortedEqual(t, r0, []int{0, 1, 2, 3})
+		sortedEqual(t, r1, []int{0, 10, 20, 30})
 	})
 
 	t.Run("map to 2 with side value", func(t *testing.T) {
@@ -329,12 +328,8 @@ func TestAdvanced(t *testing.T) {
 		r0 := collectTestSlice(c0)
 		r1 := collectTestSlice(c1)
 		p.WaitForCompletion()
-		if len(r0) != 4 {
-			t.Errorf("r0 len = %d, want 4", len(r0))
-		}
-		if len(r1) != 4 {
-			t.Errorf("r1 len = %d, want 4", len(r1))
-		}
+		sortedEqual(t, r0, []int{0, 4, 8, 12})
+		sortedEqual(t, r1, []string{"ok", "ok", "ok", "ok"})
 	})
 
 	t.Run("map with side value", func(t *testing.T) {
@@ -371,9 +366,7 @@ func TestAdvanced(t *testing.T) {
 		result := collectTestSlice(mapped)
 		p.WaitForCompletion()
 		// multiplier = 5, each value multiplied by 5: [0,5,10,15,20]
-		if len(result) != 5 {
-			t.Fatalf("len = %d, want 5", len(result))
-		}
+		sortedEqual(t, result, []int{0, 5, 10, 15, 20})
 	})
 
 	t.Run("map value 3 to 2", func(t *testing.T) {
@@ -414,9 +407,7 @@ func TestAdvanced(t *testing.T) {
 		spilled := SpillBuffer[*intSerializer](coll, WithSpillDirectories(tmpDir))
 		result := collectTestSlice(spilled)
 		p.WaitForCompletion()
-		if len(result) != 10 {
-			t.Fatalf("len = %d, want 10", len(result))
-		}
+		sortedEqual(t, result, []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9})
 	})
 
 	t.Run("ignore", func(t *testing.T) {
