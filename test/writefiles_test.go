@@ -53,11 +53,11 @@ func TestWriteFiles_Default(t *testing.T) {
 	dir := t.TempDir()
 	pipeline := gomr.NewPipeline()
 
-	fileio.WriteFiles(
+	gomr.Ignore(fileio.WriteFiles(
 		seedRecords(pipeline, []record{{"alice", 10}, {"bob", 20}, {"charlie", 30}}),
 		&recordSerializer{}, dir,
 		fileio.WithNumShards(1),
-	)
+	))
 	pipeline.WaitForCompletion()
 
 	lines := readOutputLines(t, dir, "output.csv")
@@ -74,14 +74,14 @@ func TestWriteFiles_WithCustomWriter(t *testing.T) {
 	pipeline := gomr.NewPipeline()
 
 	// WithCustomWriter takes func(io.Writer) io.Writer — no Close needed.
-	fileio.WriteFiles(
+	gomr.Ignore(fileio.WriteFiles(
 		seedRecords(pipeline, []record{{"alice", 10}, {"bob", 20}}),
 		&recordSerializer{}, dir,
 		fileio.WithCustomWriter(func(w io.Writer) io.Writer {
 			return &uppercaseWriter{w: w}
 		}),
 		fileio.WithNumShards(1),
-	)
+	))
 	pipeline.WaitForCompletion()
 
 	lines := readOutputLines(t, dir, "output.csv")
@@ -100,14 +100,14 @@ func TestWriteFiles_WithCustomWriteCloser(t *testing.T) {
 	var closeCalled bool
 
 	// WithCustomWriteCloser takes func(io.Writer) io.WriteCloser — Close is called.
-	fileio.WriteFiles(
+	gomr.Ignore(fileio.WriteFiles(
 		seedRecords(pipeline, []record{{"alice", 10}}),
 		&recordSerializer{}, dir,
 		fileio.WithCustomWriteCloser(func(w io.Writer) io.WriteCloser {
 			return &trackingUppercaseWriter{w: w, closed: &closeCalled}
 		}),
 		fileio.WithNumShards(1),
-	)
+	))
 	pipeline.WaitForCompletion()
 
 	lines := readOutputLines(t, dir, "output.csv")
