@@ -2,6 +2,7 @@ package test
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/a-kazakov/gomr"
@@ -233,5 +234,45 @@ func TestShuffle(t *testing.T) {
 				}
 			}
 		})
+	})
+
+	t.Run("temp files cleaned up after shuffle", func(t *testing.T) {
+		tmpDir := t.TempDir()
+
+		pipeline := gomr.NewPipeline()
+		values := gomr.NewSeedCollection(pipeline, func(ctx gomr.OperatorContext, emitter gomr.Emitter[int]) {
+			for i := 0; i < 1000; i++ {
+				*emitter.GetEmitPointer() = i
+			}
+		})
+		shuffled := gomr.Shuffle[*lastDigitShuffleSerializer, *sumReducer](values,
+			gomr.WithScratchSpacePaths(tmpDir),
+			gomr.WithLocalShuffleBufferSize(128*1024), // 1 page - force spilling
+		)
+		result := collectToSliceValue(shuffled)
+		verifySliceValue(t, result, func(yield func(value int) bool) {
+			var sums [10]int
+			for i := 0; i < 1000; i++ {
+				sums[i%10] += i
+			}
+			for i := 0; i < 10; i++ {
+				if !yield(sums[i]) {
+					return
+				}
+			}
+		})
+
+		// After pipeline completion, temp directory should be empty
+		entries, err := os.ReadDir(tmpDir)
+		if err != nil {
+			t.Fatalf("ReadDir error: %v", err)
+		}
+		if len(entries) > 0 {
+			names := make([]string, len(entries))
+			for i, e := range entries {
+				names[i] = e.Name()
+			}
+			t.Errorf("temp directory not cleaned up, remaining files: %v", names)
+		}
 	})
 }
