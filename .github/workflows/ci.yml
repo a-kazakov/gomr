@@ -52,6 +52,27 @@ jobs:
         working-directory: extensions/fileio
         run: go test -race -count=1 ./...
 
+  test-extensions-s3backend:
+    name: Extensions / s3backend
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: ['1.25', '1.26']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+      - name: Build
+        working-directory: extensions/fileio/s3backend
+        run: go build ./...
+      - name: Vet
+        working-directory: extensions/fileio/s3backend
+        run: go vet ./...
+      - name: Test
+        working-directory: extensions/fileio/s3backend
+        run: go test -race -count=1 ./...
+
   test-extensions-marshal:
     name: Extensions / marshal
     runs-on: ubuntu-latest
