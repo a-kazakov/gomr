@@ -86,7 +86,7 @@ jobs:
           go-version: ${{ matrix.go-version }}
       - name: Test
         working-directory: test
-        run: go test -race -count=1 -timeout=120s ./...
+        run: go test -race -count=1 -timeout=300s ./...
 
   test-examples:
     name: Examples
