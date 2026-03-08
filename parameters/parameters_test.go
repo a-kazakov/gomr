@@ -116,21 +116,34 @@ func TestParseIntError(t *testing.T) {
 }
 
 func TestParseInt32(t *testing.T) {
-	// Note: The overflow check uses ^int32(0) which equals -1 (bitwise NOT).
-	// The condition is (v > -1 || v < 0) which is true for ALL int64 values.
-	// This means ParseInt32 currently rejects every input as overflow.
-	// This doesn't matter in practice because Int32ParamDynamic uses dynamic defaults.
-	_, err := ParseInt32("100")
-	if err == nil {
-		t.Error("ParseInt32 currently rejects all values due to overflow check bug")
+	tests := []struct {
+		input   string
+		want    int32
+		wantErr bool
+	}{
+		{"100", 100, false},
+		{"-1", -1, false},
+		{"0", 0, false},
+		{"2147483647", 2147483647, false},  // MaxInt32
+		{"-2147483648", -2147483648, false}, // MinInt32
+		{"1K", 1000, false},
+		{"2147483648", 0, true},  // MaxInt32 + 1
+		{"-2147483649", 0, true}, // MinInt32 - 1
+		{"3G", 0, true},         // 3 billion overflows int32
 	}
-	_, err = ParseInt32("-1")
-	if err == nil {
-		t.Error("ParseInt32 currently rejects all values")
-	}
-	_, err = ParseInt32("0")
-	if err == nil {
-		t.Error("ParseInt32 currently rejects all values")
+	for _, tt := range tests {
+		v, err := ParseInt32(tt.input)
+		if tt.wantErr {
+			if err == nil {
+				t.Errorf("ParseInt32(%q) = %d, want error", tt.input, v)
+			}
+		} else {
+			if err != nil {
+				t.Errorf("ParseInt32(%q) error: %v", tt.input, err)
+			} else if v != tt.want {
+				t.Errorf("ParseInt32(%q) = %d, want %d", tt.input, v, tt.want)
+			}
+		}
 	}
 }
 
