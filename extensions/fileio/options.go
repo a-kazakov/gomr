@@ -255,12 +255,29 @@ type customWriterOption struct {
 }
 
 // WithCustomWriter returns an option that wraps the underlying file writer
-// (e.g. with compression or record framing). By default, WriteFiles writes
-// records directly without any wrapping.
-func WithCustomWriter(f func(baseWriter io.Writer) io.WriteCloser) customWriterOption {
-	return customWriterOption{value: f}
+// with a transform that does not need its own Close. For wrappers that need
+// Close (e.g. gzip), use WithCustomWriteCloser instead.
+func WithCustomWriter(f func(baseWriter io.Writer) io.Writer) customWriterOption {
+	return customWriterOption{value: func(w io.Writer) io.WriteCloser {
+		return NewFakeWriteCloser(f(w))
+	}}
 }
 
 func (o customWriterOption) ApplyWriteFilesConfig(c *WriteFilesConfig) {
+	c.MakeWriter = o.value
+}
+
+type customWriteCloserOption struct {
+	value func(baseWriter io.Writer) io.WriteCloser
+}
+
+// WithCustomWriteCloser returns an option that wraps the underlying file writer
+// with a transform that has its own Close method (e.g. compression, framing).
+// Close is called before the underlying file writer is closed.
+func WithCustomWriteCloser(f func(baseWriter io.Writer) io.WriteCloser) customWriteCloserOption {
+	return customWriteCloserOption{value: f}
+}
+
+func (o customWriteCloserOption) ApplyWriteFilesConfig(c *WriteFilesConfig) {
 	c.MakeWriter = o.value
 }

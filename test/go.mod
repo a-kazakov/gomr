@@ -2,7 +2,10 @@ module github.com/a-kazakov/gomr/test
 
 go 1.26
 
-require github.com/a-kazakov/gomr v0.0.0
+require (
+	github.com/a-kazakov/gomr v0.0.0
+	github.com/a-kazakov/gomr/extensions/fileio v0.0.0
+)
 
 require (
 	github.com/klauspost/compress v1.18.4 // indirect
