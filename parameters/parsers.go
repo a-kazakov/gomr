@@ -203,15 +203,11 @@ func ParseCompressionAlgorithm(s string) (core.CompressionAlgorithm, error) {
 		return core.CompressionAlgorithmNone, nil
 	case "lz4":
 		return core.CompressionAlgorithmLz4, nil
-	case "zstdfast":
-	case "zstd-fast":
-	case "zstd":
+	case "zstdfast", "zstd-fast", "zstd":
 		return core.CompressionAlgorithmZstdFast, nil
-	case "zstd-default":
-	case "zstddefault":
+	case "zstd-default", "zstddefault":
 		return core.CompressionAlgorithmZstdDefault, nil
 	default:
 		return 0, fmt.Errorf("invalid compression algorithm %q", s)
 	}
-	return 0, nil
 }

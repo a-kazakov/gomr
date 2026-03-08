@@ -229,52 +229,34 @@ func TestParseDuration(t *testing.T) {
 }
 
 func TestParseCompressionAlgorithm(t *testing.T) {
-	// The switch in ParseCompressionAlgorithm uses empty case bodies without fallthrough.
-	// In Go, empty case bodies fall through to the next case's code only in expression switches;
-	// but these are separate case clauses without fallthrough, so they execute their empty body
-	// and then fall out of the switch, hitting the final "return 0, nil".
-	// Only "none", "lz4", and "zstd" (last case before default) actually return the intended value.
-
-	workingTests := []struct {
+	tests := []struct {
 		input string
 		want  core.CompressionAlgorithm
 	}{
 		{"none", core.CompressionAlgorithmNone},
 		{"lz4", core.CompressionAlgorithmLz4},
 		{"zstd", core.CompressionAlgorithmZstdFast},
+		{"zstdfast", core.CompressionAlgorithmZstdFast},
+		{"zstd-fast", core.CompressionAlgorithmZstdFast},
+		{"zstddefault", core.CompressionAlgorithmZstdDefault},
+		{"zstd-default", core.CompressionAlgorithmZstdDefault},
+		{"  Zstd  ", core.CompressionAlgorithmZstdFast},    // trimmed + case-insensitive
+		{"NONE", core.CompressionAlgorithmNone},             // uppercase
+		{"LZ4", core.CompressionAlgorithmLz4},               // uppercase
 	}
-	for _, tt := range workingTests {
+	for _, tt := range tests {
 		v, err := ParseCompressionAlgorithm(tt.input)
 		if err != nil {
 			t.Errorf("ParseCompressionAlgorithm(%q) error: %v", tt.input, err)
-		}
-		if v != tt.want {
+		} else if v != tt.want {
 			t.Errorf("ParseCompressionAlgorithm(%q) = %d, want %d", tt.input, v, tt.want)
 		}
 	}
 
-	// "zstddefault" works because it's the last case before default with the return statement
-	v, err := ParseCompressionAlgorithm("zstddefault")
-	if err != nil || v != core.CompressionAlgorithmZstdDefault {
-		t.Errorf("ParseCompressionAlgorithm(zstddefault) = %d, err=%v", v, err)
-	}
-
-	// These cases have empty bodies (no fallthrough in Go), so they exit the switch
-	// and hit the trailing "return 0, nil"
-	emptyBodyCases := []string{"zstdfast", "zstd-fast", "zstd-default"}
-	for _, s := range emptyBodyCases {
-		v, err := ParseCompressionAlgorithm(s)
-		if err != nil {
-			t.Errorf("ParseCompressionAlgorithm(%q) unexpected error: %v", s, err)
-		}
-		if v != 0 {
-			t.Errorf("ParseCompressionAlgorithm(%q) = %d, expected 0 (empty case body)", s, v)
-		}
-	}
-
-	_, unknownErr := ParseCompressionAlgorithm("unknown")
-	if unknownErr == nil {
-		t.Error("ParseCompressionAlgorithm(unknown) should error")
+	// Error case
+	_, err := ParseCompressionAlgorithm("unknown")
+	if err == nil {
+		t.Error("ParseCompressionAlgorithm(\"unknown\") should error")
 	}
 }
 
