@@ -245,20 +245,18 @@ func TestShuffleCleanup(t *testing.T) {
 
 		pipeline := gomr.NewPipeline()
 		values := gomr.NewSeedCollection(pipeline, func(ctx gomr.OperatorContext, emitter gomr.Emitter[int]) {
-			for i := 0; i < 50; i++ {
+			for i := 0; i < 200; i++ {
 				*emitter.GetEmitPointer() = i
 			}
 		})
 		shuffled := gomr.Shuffle[*lastDigitShuffleSerializer, *sumReducer](values,
 			gomr.WithScratchSpacePaths(tmpDir),
-			gomr.WithLocalShuffleBufferSize(128*1024*1), // 1 page - forces spilling with 50 items
-			gomr.WithScatterParallelism(1),
-			gomr.WithGatherParallelism(1),
+			gomr.WithLocalShuffleBufferSize(128*1024*3), // 3 pages - forces spilling with 200 items
 		)
 		result := collectToSliceValue(shuffled)
 		verifySliceValue(t, result, func(yield func(value int) bool) {
 			var sums [10]int
-			for i := 0; i < 50; i++ {
+			for i := 0; i < 200; i++ {
 				sums[i%10] += i
 			}
 			for i := 0; i < 10; i++ {
