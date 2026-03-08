@@ -1,6 +1,10 @@
 package fileio
 
-import "github.com/a-kazakov/gomr"
+import (
+	"io"
+
+	"github.com/a-kazakov/gomr"
+)
 
 // =============================================================================
 // Low-level I/O configs (Open, Create, Glob)
@@ -58,7 +62,8 @@ type ReadFilesConfig struct {
 // WriteFilesConfig holds configuration for WriteFiles.
 type WriteFilesConfig struct {
 	Backend            Backend
-	BufferSize         int // per-file write buffer, default 16MB
+	MakeWriter         func(baseWriter io.Writer) io.WriteCloser // nil = write directly
+	BufferSize         int                                       // per-file write buffer, default 16MB
 	OperationName      string
 	CollectionName     string
 	BatchSize          int
@@ -243,4 +248,19 @@ func WithShuffleOptions(opts ...gomr.ShuffleOption) shuffleOptionsOption {
 
 func (o shuffleOptionsOption) ApplyWriteFilesConfig(c *WriteFilesConfig) {
 	c.ExtraShuffleOpts = append(c.ExtraShuffleOpts, o.value...)
+}
+
+type customWriterOption struct {
+	value func(baseWriter io.Writer) io.WriteCloser
+}
+
+// WithCustomWriter returns an option that wraps the underlying file writer
+// (e.g. with compression or record framing). By default, WriteFiles writes
+// records directly without any wrapping.
+func WithCustomWriter(f func(baseWriter io.Writer) io.WriteCloser) customWriterOption {
+	return customWriterOption{value: f}
+}
+
+func (o customWriterOption) ApplyWriteFilesConfig(c *WriteFilesConfig) {
+	c.MakeWriter = o.value
 }
