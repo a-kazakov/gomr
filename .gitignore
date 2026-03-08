@@ -1,0 +1,35 @@
+# Go binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+
+# Go build cache
+vendor/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node (vis tools)
+node_modules/
+.wrangler/
+
+# Vis server data
+vis/server/server-data/
+
+# Test binaries
+examples/gomr-examples
+examples/sample_pipeline_test
+
+# Scratch/spill files
+scratch/

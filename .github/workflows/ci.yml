@@ -1,0 +1,116 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-core:
+    name: Core Framework
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: ['1.24', '1.25']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+      - name: Build
+        run: go build ./...
+      - name: Vet
+        run: go vet ./...
+      - name: Test
+        run: go test -race -count=1 ./...
+
+  test-extensions-fileio:
+    name: Extensions / fileio
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: ['1.24', '1.25']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+      - name: Build
+        working-directory: extensions/fileio
+        run: go build ./...
+      - name: Vet
+        working-directory: extensions/fileio
+        run: go vet ./...
+      - name: Test
+        working-directory: extensions/fileio
+        run: go test -race -count=1 ./...
+
+  test-extensions-marshal:
+    name: Extensions / marshal
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: ['1.24', '1.25']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+      - name: Build
+        working-directory: extensions/marshal
+        run: go build ./...
+      - name: Vet
+        working-directory: extensions/marshal
+        run: go vet ./...
+      - name: Test
+        working-directory: extensions/marshal
+        run: go test -race -count=1 ./...
+
+  test-integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: ['1.24', '1.25']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+      - name: Test
+        working-directory: test
+        run: go test -race -count=1 -timeout=120s ./...
+
+  test-examples:
+    name: Examples
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: ['1.24', '1.25']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+      - name: Build
+        working-directory: examples
+        run: go build ./...
+
+  codegen-check:
+    name: Code Generation Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+      - name: Run go generate
+        run: go generate ./...
+      - name: Check for uncommitted changes
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "Generated code is out of date. Run 'go generate ./...' and commit the changes."
+            git diff
+            exit 1
+          fi

@@ -1,0 +1,13 @@
+package pagedbuffer
+
+const PAGE_SIZE_POW2 = 17             // 128KB
+const PAGE_SIZE = 1 << PAGE_SIZE_POW2 // 128KB
+const PAGE_SIZE_MASK = PAGE_SIZE - 1
+
+const MAX_PAGES_POW2 = 12             // 4096
+const MAX_PAGES = 1 << MAX_PAGES_POW2 // 4096
+const MAX_PAGES_MASK = MAX_PAGES - 1
+
+const MAX_BUFFER_SIZE_POW2 = MAX_PAGES_POW2 + PAGE_SIZE_POW2 // 12 + 17 = 29
+const MAX_BUFFER_SIZE = 1 << MAX_BUFFER_SIZE_POW2            // 512MB
+const MAX_BUFFER_SIZE_MASK = MAX_BUFFER_SIZE - 1

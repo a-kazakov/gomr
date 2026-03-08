@@ -1,0 +1,14 @@
+// Package constants defines global sizing constants for the shuffle system
+// and inter-stage pipeline channels.
+package constants
+
+const MAX_SHUFFLE_KEY_SIZE_POW2 = 10 // 1KB
+const MAX_SHUFFLE_KEY_SIZE = 1 << MAX_SHUFFLE_KEY_SIZE_POW2
+const MAX_SHUFFLE_KEY_SIZE_MASK = MAX_SHUFFLE_KEY_SIZE - 1
+
+const MAX_SHUFFLE_VALUE_SIZE_POW2 = 24 // 16MB
+const MAX_SHUFFLE_VALUE_SIZE = 1 << MAX_SHUFFLE_VALUE_SIZE_POW2
+const MAX_SHUFFLE_VALUE_SIZE_MASK = MAX_SHUFFLE_VALUE_SIZE - 1
+
+const INTER_STAGE_CHAN_CAPACITY = 1000
+const STAGE_RECYCLE_CHAN_CAPACITY = 2 * INTER_STAGE_CHAN_CAPACITY

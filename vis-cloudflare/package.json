@@ -1,0 +1,16 @@
+{
+  "name": "gomr-vis-cloudflare",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "npm run build:client && wrangler pages dev client/dist --kv=GOMR_VIS",
+    "build:client": "cd client && npm run build",
+    "deploy": "npm run build:client && wrangler pages deploy client/dist",
+    "postinstall": "cd client && npm install"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241205.0",
+    "typescript": "^5.0.0",
+    "wrangler": "^3.99.0"
+  }
+}
