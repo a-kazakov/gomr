@@ -2,6 +2,7 @@ package parameters
 
 import (
 	"flag"
+	"sync"
 	"testing"
 	"time"
 
@@ -1267,5 +1268,29 @@ func TestParseInt32Error(t *testing.T) {
 	_, err := ParseInt32("notanumber")
 	if err == nil {
 		t.Error("ParseInt32(notanumber) should return error")
+	}
+}
+
+func TestParameterConcurrentGet(t *testing.T) {
+	param := NewIntParam("test", "concurrent", "concurrent access test", 42, nil)
+
+	const numGoroutines = 100
+	results := make([]int, numGoroutines)
+	var wg sync.WaitGroup
+	wg.Add(numGoroutines)
+
+	for i := 0; i < numGoroutines; i++ {
+		go func(idx int) {
+			defer wg.Done()
+			results[idx] = param.Get()
+		}(i)
+	}
+
+	wg.Wait()
+
+	for i, r := range results {
+		if r != 42 {
+			t.Errorf("goroutine %d got %d, want 42", i, r)
+		}
 	}
 }

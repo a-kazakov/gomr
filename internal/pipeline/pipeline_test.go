@@ -3,6 +3,7 @@ package pipeline
 // Tests use package-internal access for: startMetricsPush, stopMetricsPush, consumed field, metricsPusher field, UserContext field on OperatorContext.
 
 import (
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -695,4 +696,36 @@ func TestMetricsPush(t *testing.T) {
 			t.Error("metricsPusher should be nil for negative interval")
 		}
 	})
+}
+
+func TestValueConcurrentWait(t *testing.T) {
+	p := NewPipeline()
+	v := NewValue[int](p, "concurrent")
+
+	const numGoroutines = 100
+	results := make([]int, numGoroutines)
+	var wg sync.WaitGroup
+	wg.Add(numGoroutines)
+
+	// Start many goroutines waiting for the value
+	for i := 0; i < numGoroutines; i++ {
+		go func(idx int) {
+			defer wg.Done()
+			results[idx] = v.Wait()
+		}(i)
+	}
+
+	// Give goroutines time to start waiting
+	time.Sleep(10 * time.Millisecond)
+
+	// Resolve the value
+	v.Resolve(42)
+
+	wg.Wait()
+
+	for i, r := range results {
+		if r != 42 {
+			t.Errorf("goroutine %d got %d, want 42", i, r)
+		}
+	}
 }
