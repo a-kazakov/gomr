@@ -31,8 +31,7 @@ func GetFileDecompressor(reader io.Reader, algorithm core.CompressionAlgorithm) 
 			algorithm: algorithm,
 			reader:    lz4Reader,
 		}
-	case core.CompressionAlgorithmZstdFast:
-	case core.CompressionAlgorithmZstdDefault:
+	case core.CompressionAlgorithmZstdFast, core.CompressionAlgorithmZstdDefault:
 		zstdReader := zstdReaderPool.Get().(*zstd.Decoder)
 		zstdReader.Reset(reader)
 		return &FileDecompressor{
@@ -55,8 +54,7 @@ func (d *FileDecompressor) Close() error {
 	case core.CompressionAlgorithmLz4:
 		lz4Reader := d.reader.(*lz4.Reader)
 		lz4ReaderPool.Put(lz4Reader)
-	case core.CompressionAlgorithmZstdFast:
-	case core.CompressionAlgorithmZstdDefault:
+	case core.CompressionAlgorithmZstdFast, core.CompressionAlgorithmZstdDefault:
 		zstdReader := d.reader.(*zstd.Decoder)
 		zstdReaderPool.Put(zstdReader)
 	}

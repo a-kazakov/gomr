@@ -69,21 +69,8 @@ func TestRoundTrip(t *testing.T) {
 		roundTrip(t, core.CompressionAlgorithmZstdDefault, []byte("hello world zstd default compression test data"))
 	})
 
-	t.Run("zstd fast compressor only", func(t *testing.T) {
-		// ZstdFast has an empty case body in GetFileDecompressor due to a switch issue,
-		// so we can only test the compressor side.
-		var buf bytes.Buffer
-		compressor := GetFileCompressor(&buf, core.CompressionAlgorithmZstdFast)
-		data := []byte("hello world zstd fast test")
-		if _, err := compressor.Write(data); err != nil {
-			t.Fatal(err)
-		}
-		if err := compressor.Close(); err != nil {
-			t.Fatal(err)
-		}
-		if buf.Len() == 0 {
-			t.Error("compressed output should not be empty")
-		}
+	t.Run("zstd fast", func(t *testing.T) {
+		roundTrip(t, core.CompressionAlgorithmZstdFast, []byte("hello world zstd fast compression test data"))
 	})
 
 	t.Run("empty data", func(t *testing.T) {
@@ -91,6 +78,7 @@ func TestRoundTrip(t *testing.T) {
 			core.CompressionAlgorithmNone,
 			core.CompressionAlgorithmLz4,
 			core.CompressionAlgorithmZstdDefault,
+			core.CompressionAlgorithmZstdFast,
 		} {
 			roundTrip(t, alg, []byte{})
 		}
@@ -104,6 +92,7 @@ func TestRoundTrip(t *testing.T) {
 		for _, alg := range []core.CompressionAlgorithm{
 			core.CompressionAlgorithmLz4,
 			core.CompressionAlgorithmZstdDefault,
+			core.CompressionAlgorithmZstdFast,
 		} {
 			roundTrip(t, alg, data)
 		}
@@ -154,10 +143,26 @@ func TestPoolReuse(t *testing.T) {
 		c.Close()
 		data := compressed.Bytes()
 
-		// Decompress twice to verify pool reuse
+		// Decompress multiple times to verify pool reuse
 		for i := 0; i < 3; i++ {
 			reader := bytes.NewReader(data)
 			d := GetFileDecompressor(reader, core.CompressionAlgorithmLz4)
+			buf := make([]byte, 100)
+			d.Read(buf)
+			d.Close()
+		}
+
+		// Compress some data with ZstdFast
+		var compressedZstd bytes.Buffer
+		cz := GetFileCompressor(&compressedZstd, core.CompressionAlgorithmZstdFast)
+		cz.Write([]byte("test"))
+		cz.Close()
+		zstdData := compressedZstd.Bytes()
+
+		// Decompress multiple times to verify pool reuse
+		for i := 0; i < 3; i++ {
+			reader := bytes.NewReader(zstdData)
+			d := GetFileDecompressor(reader, core.CompressionAlgorithmZstdFast)
 			buf := make([]byte, 100)
 			d.Read(buf)
 			d.Close()
@@ -184,17 +189,6 @@ func TestErrorPaths(t *testing.T) {
 		}()
 		var buf bytes.Buffer
 		GetFileDecompressor(&buf, core.CompressionAlgorithm(99))
-	})
-
-	t.Run("zstd fast decompressor panics", func(t *testing.T) {
-		// ZstdFast case in GetFileDecompressor has empty body, falls through to panic
-		defer func() {
-			if r := recover(); r == nil {
-				t.Error("expected panic for ZstdFast decompress due to empty case body")
-			}
-		}()
-		var buf bytes.Buffer
-		GetFileDecompressor(&buf, core.CompressionAlgorithmZstdFast)
 	})
 
 	t.Run("close error lz4", func(t *testing.T) {
