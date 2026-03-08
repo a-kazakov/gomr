@@ -483,7 +483,7 @@ func TestValue(t *testing.T) {
 		p := NewPipeline()
 		v := NewValue[int](p, "v")
 		// Ensure done is false - this will take the slow path through the channel
-		if v.done {
+		if v.done.Load() {
 			t.Fatal("value should not be done initially")
 		}
 		// Resolve in a goroutine so we can test the blocking Wait path

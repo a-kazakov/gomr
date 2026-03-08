@@ -3,6 +3,7 @@ package parameters
 import (
 	"flag"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/a-kazakov/gomr/internal/core"
@@ -24,6 +25,7 @@ type Parameter[T any] struct {
 
 	// Runtime state
 	cachedValue *T
+	cacheOnce   sync.Once
 	flagValue   *flagValue[T]
 	source      string // "default", "flag", "source" (for debugging)
 }
@@ -85,16 +87,17 @@ func (p *Parameter[T]) Description() string {
 // Get returns the resolved value of the parameter.
 // Priority: flag > source > default
 func (p *Parameter[T]) Get() T {
-	if p.cachedValue != nil {
-		return *p.cachedValue
-	}
-
-	value := p.retrieveValue()
-	if err := p.validateFn(value); err != nil {
-		panic(fmt.Sprintf("parameter %s: invalid value %v: %s", p.FullName(), value, err))
-	}
-	p.cachedValue = &value
-	return value
+	p.cacheOnce.Do(func() {
+		if p.cachedValue != nil {
+			return // already set by LoadFromSource
+		}
+		value := p.retrieveValue()
+		if err := p.validateFn(value); err != nil {
+			panic(fmt.Sprintf("parameter %s: invalid value %v: %s", p.FullName(), value, err))
+		}
+		p.cachedValue = &value
+	})
+	return *p.cachedValue
 }
 
 func (p *Parameter[T]) retrieveValue() T {
