@@ -65,7 +65,7 @@ func (f *ShardedFile) GetSize() int64 {
 }
 
 func (f *ShardedFile) Destroy() {
-	// os.Remove(f.filePath)
+	os.Remove(f.filePath)
 	f.filePath = ""
 	f.shardEndings = nil
 }

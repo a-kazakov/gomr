@@ -2,11 +2,14 @@ package test
 
 import (
 	"cmp"
+	"io/fs"
 	"iter"
+	"path/filepath"
 	"slices"
 	"testing"
 
 	"github.com/a-kazakov/gomr"
+	"github.com/a-kazakov/gomr/parameters"
 )
 
 func collectToSliceValue[T any](collection gomr.Collection[T]) gomr.Value[[]T] {
@@ -45,6 +48,46 @@ func createSliceValue[T any](pipeline gomr.Pipeline, value []T) gomr.Value[[]T] 
 		}
 	})
 	return collectToSliceValue(collection)
+}
+
+// newTestPipeline creates a pipeline whose scratch space is a test-owned temp
+// directory.  The temp directory is cleaned up automatically by t.TempDir()
+// even if the test panics.  A t.Cleanup hook verifies that no regular files
+// remain in the scratch directory after the test completes.
+func newTestPipeline(t *testing.T) gomr.Pipeline {
+	t.Helper()
+	scratchDir := t.TempDir()
+	params := parameters.NewParameters()
+	if err := params.LoadFromSource(func(key string) (string, bool) {
+		if key == "disk.scratch_paths" {
+			return scratchDir, true
+		}
+		return "", false
+	}); err != nil {
+		t.Fatalf("failed to configure scratch path: %v", err)
+	}
+	t.Cleanup(func() {
+		assertNoFiles(t, scratchDir)
+	})
+	return gomr.NewPipelineWithParameters(params)
+}
+
+// assertNoFiles walks dir and fails the test if any regular file is found.
+// Empty directories are acceptable.
+func assertNoFiles(t *testing.T, dir string) {
+	t.Helper()
+	err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !d.IsDir() {
+			t.Errorf("scratch directory not clean: found file %s", path)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Errorf("failed to walk scratch directory: %v", err)
+	}
 }
 
 func interleave[T any](seq1, seq2 iter.Seq[T]) iter.Seq[T] {

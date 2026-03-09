@@ -51,7 +51,7 @@ func readOutputLines(t *testing.T, dir, filename string) []string {
 
 func TestWriteFiles_Default(t *testing.T) {
 	dir := t.TempDir()
-	pipeline := gomr.NewPipeline()
+	pipeline := newTestPipeline(t)
 
 	gomr.Ignore(fileio.WriteFiles(
 		seedRecords(pipeline, []record{{"alice", 10}, {"bob", 20}, {"charlie", 30}}),
@@ -67,11 +67,12 @@ func TestWriteFiles_Default(t *testing.T) {
 	if !slices.Equal(lines, expected) {
 		t.Errorf("default WriteFiles mismatch.\nExpected: %v\nGot:      %v", expected, lines)
 	}
+
 }
 
 func TestWriteFiles_WithCustomWriter(t *testing.T) {
 	dir := t.TempDir()
-	pipeline := gomr.NewPipeline()
+	pipeline := newTestPipeline(t)
 
 	// WithCustomWriter takes func(io.Writer) io.Writer — no Close needed.
 	gomr.Ignore(fileio.WriteFiles(
@@ -91,11 +92,12 @@ func TestWriteFiles_WithCustomWriter(t *testing.T) {
 	if !slices.Equal(lines, expected) {
 		t.Errorf("WithCustomWriter mismatch.\nExpected: %v\nGot:      %v", expected, lines)
 	}
+
 }
 
 func TestWriteFiles_WithCustomWriteCloser(t *testing.T) {
 	dir := t.TempDir()
-	pipeline := gomr.NewPipeline()
+	pipeline := newTestPipeline(t)
 
 	var closeCalled bool
 
@@ -117,6 +119,7 @@ func TestWriteFiles_WithCustomWriteCloser(t *testing.T) {
 	if !closeCalled {
 		t.Error("expected Close to be called on the custom WriteCloser")
 	}
+
 }
 
 // uppercaseWriter wraps writes so all bytes are uppercased (no Close).

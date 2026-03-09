@@ -82,7 +82,7 @@ func TestS3Integration(t *testing.T) {
 	}
 
 	// --- Single pipeline: ReadFiles → Map → WriteFiles ---
-	pipeline := gomr.NewPipeline()
+	pipeline := newTestPipeline(t)
 
 	// Step 1: Read CSV lines from public S3.
 	// CSV format: ID,DATE,ELEMENT,DATA_VALUE,M_FLAG,Q_FLAG,S_FLAG,OBS_TIME
@@ -133,6 +133,7 @@ func TestS3Integration(t *testing.T) {
 	))
 
 	pipeline.WaitForCompletion()
+
 
 	// --- Verify: read back from fake S3 ---
 	reader, err := fileio.Open("s3://test-output/temperatures.csv",
