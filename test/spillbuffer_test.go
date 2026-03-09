@@ -29,7 +29,7 @@ func (s terribleIntSerializer) UnmarshalElementFromBytes(data []byte, dest *int)
 func TestSpillBuffer(t *testing.T) {
 	t.Run("Spill buffer for variance calculation", func(t *testing.T) {
 		const collectionSize = 200
-		pipeline, scratchDir := newTestPipeline(t)
+		pipeline := newTestPipeline(t)
 		pipeline.Parameters.LoadFromSource(
 			func(lookup string) (string, bool) {
 				if lookup == "collections.default_capacity" {
@@ -110,11 +110,11 @@ func TestSpillBuffer(t *testing.T) {
 		if math.Abs(actualVariance-expectedVariance) > 0.000001 {
 			t.Errorf("Expected variance %f, got %f", expectedVariance, actualVariance)
 		}
-		assertNoFiles(t, scratchDir)
+
 	})
 
 	t.Run("temp files cleaned up after completion", func(t *testing.T) {
-		pipeline, scratchDir := newTestPipeline(t)
+		pipeline := newTestPipeline(t)
 		values := gomr.NewSeedCollection(pipeline, func(ctx gomr.OperatorContext, emitter gomr.Emitter[int]) {
 			for i := 0; i < 100; i++ {
 				*emitter.GetEmitPointer() = i
@@ -132,6 +132,6 @@ func TestSpillBuffer(t *testing.T) {
 				}
 			}
 		})
-		assertNoFiles(t, scratchDir)
+
 	})
 }

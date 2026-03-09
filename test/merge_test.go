@@ -8,7 +8,7 @@ import (
 
 func TestMerge(t *testing.T) {
 	t.Run("basic merge of two forks", func(t *testing.T) {
-		pipeline, _ := newTestPipeline(t)
+		pipeline := newTestPipeline(t)
 		values := gomr.NewSeedCollection(pipeline, func(ctx gomr.OperatorContext, emitter gomr.Emitter[int]) {
 			for i := 0; i < 5; i++ {
 				*emitter.GetEmitPointer() = i
@@ -32,7 +32,7 @@ func TestMerge(t *testing.T) {
 	})
 
 	t.Run("merge from independent sources", func(t *testing.T) {
-		pipeline, _ := newTestPipeline(t)
+		pipeline := newTestPipeline(t)
 		source1 := gomr.NewSeedCollection(pipeline, func(ctx gomr.OperatorContext, emitter gomr.Emitter[int]) {
 			for i := 0; i < 5; i++ {
 				*emitter.GetEmitPointer() = i
@@ -61,7 +61,7 @@ func TestMerge(t *testing.T) {
 	})
 
 	t.Run("merge of many forks", func(t *testing.T) {
-		pipeline, _ := newTestPipeline(t)
+		pipeline := newTestPipeline(t)
 		values := gomr.NewSeedCollection(pipeline, func(ctx gomr.OperatorContext, emitter gomr.Emitter[int]) {
 			for i := 0; i < 3; i++ {
 				*emitter.GetEmitPointer() = i
@@ -84,7 +84,7 @@ func TestMerge(t *testing.T) {
 	})
 
 	t.Run("merge single collection", func(t *testing.T) {
-		pipeline, _ := newTestPipeline(t)
+		pipeline := newTestPipeline(t)
 		values := gomr.NewSeedCollection(pipeline, func(ctx gomr.OperatorContext, emitter gomr.Emitter[int]) {
 			for i := 0; i < 5; i++ {
 				*emitter.GetEmitPointer() = i

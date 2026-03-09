@@ -52,9 +52,9 @@ func createSliceValue[T any](pipeline gomr.Pipeline, value []T) gomr.Value[[]T] 
 
 // newTestPipeline creates a pipeline whose scratch space is a test-owned temp
 // directory.  The temp directory is cleaned up automatically by t.TempDir()
-// even if the test panics.  scratchDir is returned so the caller can verify
-// that no files were left behind after pipeline completion.
-func newTestPipeline(t *testing.T) (gomr.Pipeline, string) {
+// even if the test panics.  A t.Cleanup hook verifies that no regular files
+// remain in the scratch directory after the test completes.
+func newTestPipeline(t *testing.T) gomr.Pipeline {
 	t.Helper()
 	scratchDir := t.TempDir()
 	params := parameters.NewParameters()
@@ -66,7 +66,10 @@ func newTestPipeline(t *testing.T) (gomr.Pipeline, string) {
 	}); err != nil {
 		t.Fatalf("failed to configure scratch path: %v", err)
 	}
-	return gomr.NewPipelineWithParameters(params), scratchDir
+	t.Cleanup(func() {
+		assertNoFiles(t, scratchDir)
+	})
+	return gomr.NewPipelineWithParameters(params)
 }
 
 // assertNoFiles walks dir and fails the test if any regular file is found.
