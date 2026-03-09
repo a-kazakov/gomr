@@ -141,8 +141,8 @@ import (
 )
 
 outputFiles := fileio.WriteFiles(collection, mySerializer, "/output",
-    fileio.WithCustomWriteCloser(func(w io.Writer) io.WriteCloser {
-        return fileio.NewFakeWriteCloser(tfrecord.NewWriter(w))
+    fileio.WithCustomWriter(func(w io.Writer) io.Writer {
+        return tfrecord.NewWriter(w)
     }),
     fileio.WithOperationName("Write output"),
     fileio.WithNumShards(32),
