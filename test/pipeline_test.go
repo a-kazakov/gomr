@@ -8,7 +8,7 @@ import (
 
 func TestChainedMaps(t *testing.T) {
 	// Seed(0-9) → Map(×2) → Map(+1) → collectToSliceValue → verify [1,3,5,7,9,11,13,15,17,19]
-	pipeline := gomr.NewPipeline()
+	pipeline, _ := newTestPipeline(t)
 	seed := gomr.NewSeedCollection(pipeline, func(ctx gomr.OperatorContext, emitter gomr.Emitter[int]) {
 		for i := 0; i < 10; i++ {
 			*emitter.GetEmitPointer() = i
@@ -40,7 +40,7 @@ func TestForkMapMerge(t *testing.T) {
 	//   fork1 → Map(×2) → [0,2,4,6,8]
 	//   fork2 → Map(×3) → [0,3,6,9,12]
 	// Merge → collectToSliceValue → verify [0,0,2,3,4,6,6,8,9,12]
-	pipeline := gomr.NewPipeline()
+	pipeline, _ := newTestPipeline(t)
 	seed := gomr.NewSeedCollection(pipeline, func(ctx gomr.OperatorContext, emitter gomr.Emitter[int]) {
 		for i := 0; i < 5; i++ {
 			*emitter.GetEmitPointer() = i
@@ -78,7 +78,7 @@ func TestForkMapMerge(t *testing.T) {
 
 func TestValueToCollectionFlow(t *testing.T) {
 	// Seed(0-9) → Map(×2) → Collect(sum=90) → ToCollection → Map(×10) → collectToSliceValue → verify [900]
-	pipeline := gomr.NewPipeline()
+	pipeline, _ := newTestPipeline(t)
 	seed := gomr.NewSeedCollection(pipeline, func(ctx gomr.OperatorContext, emitter gomr.Emitter[int]) {
 		for i := 0; i < 10; i++ {
 			*emitter.GetEmitPointer() = i
@@ -122,7 +122,7 @@ func TestSideValueThreading(t *testing.T) {
 	// Seed(0-9) → ForkTo2
 	//   fork1 → Collect(count=10)   [side value]
 	//   fork2 → CollectWithSideValue(count, func(receiver, count) → sum/count) → verify mean == 4
-	pipeline := gomr.NewPipeline()
+	pipeline, _ := newTestPipeline(t)
 	seed := gomr.NewSeedCollection(pipeline, func(ctx gomr.OperatorContext, emitter gomr.Emitter[int]) {
 		for i := 0; i < 10; i++ {
 			*emitter.GetEmitPointer() = i

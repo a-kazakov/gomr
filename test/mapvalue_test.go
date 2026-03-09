@@ -8,7 +8,7 @@ import (
 
 func TestMapValue(t *testing.T) {
 	t.Run("MapValue 1 to 1", func(t *testing.T) {
-		pipeline := gomr.NewPipeline()
+		pipeline, _ := newTestPipeline(t)
 		initial := gomr.NewSeedCollection(pipeline, func(ctx gomr.OperatorContext, emitter gomr.Emitter[int]) {
 			for i := 0; i < 100; i++ {
 				*emitter.GetEmitPointer() = i
@@ -41,7 +41,7 @@ func TestMapValue(t *testing.T) {
 	})
 
 	t.Run("MapValue 2 to 1 mean computation", func(t *testing.T) {
-		pipeline := gomr.NewPipeline()
+		pipeline, _ := newTestPipeline(t)
 		initial := gomr.NewSeedCollection(pipeline, func(ctx gomr.OperatorContext, emitter gomr.Emitter[int]) {
 			for i := 0; i < 100; i++ {
 				*emitter.GetEmitPointer() = i
@@ -97,7 +97,7 @@ func TestMapValue(t *testing.T) {
 	})
 
 	t.Run("MapValue 1 to 2", func(t *testing.T) {
-		pipeline := gomr.NewPipeline()
+		pipeline, _ := newTestPipeline(t)
 		initial := gomr.NewSeedCollection(pipeline, func(ctx gomr.OperatorContext, emitter gomr.Emitter[int]) {
 			for i := 0; i < 10; i++ {
 				*emitter.GetEmitPointer() = i
@@ -137,7 +137,7 @@ func TestMapValue(t *testing.T) {
 
 func TestToCollection(t *testing.T) {
 	t.Run("ToCollection round-trip", func(t *testing.T) {
-		pipeline := gomr.NewPipeline()
+		pipeline, _ := newTestPipeline(t)
 		initial := gomr.NewSeedCollection(pipeline, func(ctx gomr.OperatorContext, emitter gomr.Emitter[int]) {
 			for i := 0; i < 5; i++ {
 				*emitter.GetEmitPointer() = i
@@ -185,7 +185,7 @@ func TestToCollection(t *testing.T) {
 	})
 
 	t.Run("ToCollection then Map", func(t *testing.T) {
-		pipeline := gomr.NewPipeline()
+		pipeline, _ := newTestPipeline(t)
 		initial := gomr.NewSeedCollection(pipeline, func(ctx gomr.OperatorContext, emitter gomr.Emitter[int]) {
 			for i := 0; i < 5; i++ {
 				*emitter.GetEmitPointer() = i

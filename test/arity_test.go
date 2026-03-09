@@ -26,7 +26,7 @@ func createSingleValue(pipeline gomr.Pipeline, v int) gomr.Value[int] {
 }
 
 func TestForkTo3(t *testing.T) {
-	pipeline := gomr.NewPipeline()
+	pipeline, _ := newTestPipeline(t)
 	initial := gomr.NewSeedCollection(pipeline, func(ctx gomr.OperatorContext, emitter gomr.Emitter[int]) {
 		for i := 0; i < 5; i++ {
 			*emitter.GetEmitPointer() = i
@@ -50,7 +50,7 @@ func TestForkTo3(t *testing.T) {
 }
 
 func TestForkTo4(t *testing.T) {
-	pipeline := gomr.NewPipeline()
+	pipeline, _ := newTestPipeline(t)
 	initial := gomr.NewSeedCollection(pipeline, func(ctx gomr.OperatorContext, emitter gomr.Emitter[int]) {
 		for i := 0; i < 5; i++ {
 			*emitter.GetEmitPointer() = i
@@ -76,7 +76,7 @@ func TestForkTo4(t *testing.T) {
 }
 
 func TestForkTo5(t *testing.T) {
-	pipeline := gomr.NewPipeline()
+	pipeline, _ := newTestPipeline(t)
 	initial := gomr.NewSeedCollection(pipeline, func(ctx gomr.OperatorContext, emitter gomr.Emitter[int]) {
 		for i := 0; i < 5; i++ {
 			*emitter.GetEmitPointer() = i
@@ -104,7 +104,7 @@ func TestForkTo5(t *testing.T) {
 }
 
 func TestMapTo4(t *testing.T) {
-	pipeline := gomr.NewPipeline()
+	pipeline, _ := newTestPipeline(t)
 	initial := gomr.NewSeedCollection(pipeline, func(ctx gomr.OperatorContext, emitter gomr.Emitter[int]) {
 		for i := 0; i < 10; i++ {
 			*emitter.GetEmitPointer() = i
@@ -160,7 +160,7 @@ func TestMapTo4(t *testing.T) {
 }
 
 func TestMapTo5(t *testing.T) {
-	pipeline := gomr.NewPipeline()
+	pipeline, _ := newTestPipeline(t)
 	initial := gomr.NewSeedCollection(pipeline, func(ctx gomr.OperatorContext, emitter gomr.Emitter[int]) {
 		for i := 0; i < 10; i++ {
 			*emitter.GetEmitPointer() = i
@@ -197,7 +197,7 @@ func TestMapTo5(t *testing.T) {
 }
 
 func TestMapValue2To2(t *testing.T) {
-	pipeline := gomr.NewPipeline()
+	pipeline, _ := newTestPipeline(t)
 	a := createSingleValue(pipeline, 10)
 	b := createSingleValue(pipeline, 20)
 	sum, product := gomr.MapValue2To2(a, b,

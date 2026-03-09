@@ -8,7 +8,7 @@ import (
 
 func TestFork(t *testing.T) {
 	t.Run("Fork to 2", func(t *testing.T) {
-		pipeline := gomr.NewPipeline()
+		pipeline, _ := newTestPipeline(t)
 		initial := gomr.NewSeedCollection(pipeline, func(ctx gomr.OperatorContext, emitter gomr.Emitter[int]) {
 			for i := 0; i < 100; i++ {
 				*emitter.GetEmitPointer() = i
@@ -35,7 +35,7 @@ func TestFork(t *testing.T) {
 	})
 
 	t.Run("empty seed fork merge collect", func(t *testing.T) {
-		pipeline := gomr.NewPipeline()
+		pipeline, _ := newTestPipeline(t)
 		values := gomr.NewSeedCollection(pipeline, func(ctx gomr.OperatorContext, emitter gomr.Emitter[int]) {
 			// emit nothing
 		})
@@ -49,7 +49,7 @@ func TestFork(t *testing.T) {
 	})
 
 	t.Run("single element fork merge", func(t *testing.T) {
-		pipeline := gomr.NewPipeline()
+		pipeline, _ := newTestPipeline(t)
 		values := gomr.NewSeedCollection(pipeline, func(ctx gomr.OperatorContext, emitter gomr.Emitter[int]) {
 			*emitter.GetEmitPointer() = 7
 		})
@@ -64,7 +64,7 @@ func TestFork(t *testing.T) {
 	})
 
 	t.Run("Fork to any", func(t *testing.T) {
-		pipeline := gomr.NewPipeline()
+		pipeline, _ := newTestPipeline(t)
 		initial := gomr.NewSeedCollection(pipeline, func(ctx gomr.OperatorContext, emitter gomr.Emitter[int]) {
 			for i := 0; i < 100; i++ {
 				*emitter.GetEmitPointer() = i

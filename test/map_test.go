@@ -8,7 +8,7 @@ import (
 
 func TestMap(t *testing.T) {
 	t.Run("Map 1 to 1", func(t *testing.T) {
-		pipeline := gomr.NewPipeline()
+		pipeline, _ := newTestPipeline(t)
 		initial := gomr.NewSeedCollection(pipeline, func(ctx gomr.OperatorContext, emitter gomr.Emitter[int]) {
 			for i := 0; i < 10; i++ {
 				*emitter.GetEmitPointer() = i
@@ -32,7 +32,7 @@ func TestMap(t *testing.T) {
 	})
 
 	t.Run("Map 1 to 1 with batch fragmentation", func(t *testing.T) {
-		pipeline := gomr.NewPipeline()
+		pipeline, _ := newTestPipeline(t)
 		initial := gomr.NewSeedCollection(pipeline, func(ctx gomr.OperatorContext, emitter gomr.Emitter[int]) {
 			for i := 0; i < 100; i++ {
 				*emitter.GetEmitPointer() = i
@@ -59,7 +59,7 @@ func TestMap(t *testing.T) {
 	})
 
 	t.Run("Map 1 to 1 with side value", func(t *testing.T) {
-		pipeline := gomr.NewPipeline()
+		pipeline, _ := newTestPipeline(t)
 		initial := gomr.NewSeedCollection(pipeline, func(ctx gomr.OperatorContext, emitter gomr.Emitter[int]) {
 			for i := 0; i < 10; i++ {
 				*emitter.GetEmitPointer() = i
@@ -85,7 +85,7 @@ func TestMap(t *testing.T) {
 	})
 
 	t.Run("empty seed map collect", func(t *testing.T) {
-		pipeline := gomr.NewPipeline()
+		pipeline, _ := newTestPipeline(t)
 		values := gomr.NewSeedCollection(pipeline, func(ctx gomr.OperatorContext, emitter gomr.Emitter[int]) {
 			// emit nothing
 		})
@@ -102,7 +102,7 @@ func TestMap(t *testing.T) {
 	})
 
 	t.Run("single element map collect", func(t *testing.T) {
-		pipeline := gomr.NewPipeline()
+		pipeline, _ := newTestPipeline(t)
 		values := gomr.NewSeedCollection(pipeline, func(ctx gomr.OperatorContext, emitter gomr.Emitter[int]) {
 			*emitter.GetEmitPointer() = 42
 		})
@@ -119,7 +119,7 @@ func TestMap(t *testing.T) {
 	})
 
 	t.Run("Map 1 to 3", func(t *testing.T) {
-		pipeline := gomr.NewPipeline()
+		pipeline, _ := newTestPipeline(t)
 		initial := gomr.NewSeedCollection(pipeline, func(ctx gomr.OperatorContext, emitter gomr.Emitter[int]) {
 			for i := 0; i < 100; i++ {
 				*emitter.GetEmitPointer() = i

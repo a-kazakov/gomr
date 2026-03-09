@@ -90,7 +90,7 @@ func (r *sumReducer2To3) Reduce(key []byte, smallReceiver gomr.ShuffleReceiver[i
 func TestShuffle(t *testing.T) {
 	t.Run("Simple 1:1 shuffle", func(t *testing.T) {
 		// Sum up by last digit
-		pipeline := gomr.NewPipeline()
+		pipeline, scratchDir := newTestPipeline(t)
 		values := gomr.NewSeedCollection(pipeline, func(ctx gomr.OperatorContext, emitter gomr.Emitter[int]) {
 			for i := 0; i < 200; i++ {
 				*emitter.GetEmitPointer() = i
@@ -109,13 +109,14 @@ func TestShuffle(t *testing.T) {
 				}
 			}
 		})
+		assertNoFiles(t, scratchDir)
 	})
 
 	t.Run("1:1 shuffle with big chunks", func(t *testing.T) {
 		const baseSize = 100
 		const numItems = 10
 		// Sum up by last digit
-		pipeline := gomr.NewPipeline()
+		pipeline, scratchDir := newTestPipeline(t)
 		values := gomr.NewSeedCollection(pipeline, func(ctx gomr.OperatorContext, emitter gomr.Emitter[int]) {
 			for i := baseSize; i < baseSize+numItems; i++ {
 				*emitter.GetEmitPointer() = i
@@ -139,13 +140,14 @@ func TestShuffle(t *testing.T) {
 				}
 			}
 		})
+		assertNoFiles(t, scratchDir)
 	})
 
 	t.Run("1:1 shuffle with guaranteed spill", func(t *testing.T) {
 		// Sum up by last digit
 		// Use 500 items with 128KB buffer to guarantee spill,
 		// but keep parallelism low to avoid timeout under the race detector.
-		pipeline := gomr.NewPipeline()
+		pipeline, scratchDir := newTestPipeline(t)
 		values := gomr.NewSeedCollection(pipeline, func(ctx gomr.OperatorContext, emitter gomr.Emitter[int]) {
 			for i := 0; i < 500; i++ {
 				*emitter.GetEmitPointer() = i
@@ -167,10 +169,11 @@ func TestShuffle(t *testing.T) {
 				}
 			}
 		})
+		assertNoFiles(t, scratchDir)
 	})
 
 	t.Run("2:3 shuffle", func(t *testing.T) {
-		pipeline := gomr.NewPipeline()
+		pipeline, scratchDir := newTestPipeline(t)
 		smallValues := gomr.NewSeedCollection(pipeline, func(ctx gomr.OperatorContext, emitter gomr.Emitter[int]) {
 			for i := 0; i < 100; i++ {
 				*emitter.GetEmitPointer() = i
@@ -233,6 +236,7 @@ func TestShuffle(t *testing.T) {
 				}
 			}
 		})
+		assertNoFiles(t, scratchDir)
 	})
 
 }

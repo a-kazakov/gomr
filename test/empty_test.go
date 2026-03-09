@@ -8,12 +8,12 @@ import (
 
 func TestEmptyPipeline(t *testing.T) {
 	t.Run("empty pipeline", func(t *testing.T) {
-		pipeline := gomr.NewPipeline()
+		pipeline, _ := newTestPipeline(t)
 		pipeline.WaitForCompletion()
 	})
 
 	t.Run("empty seed collect", func(t *testing.T) {
-		pipeline := gomr.NewPipeline()
+		pipeline, _ := newTestPipeline(t)
 		values := gomr.NewSeedCollection(pipeline, func(ctx gomr.OperatorContext, emitter gomr.Emitter[int]) {
 			// emit nothing
 		})
