@@ -3,7 +3,7 @@ module github.com/a-kazakov/gomr/examples
 go 1.26
 
 require (
-	github.com/a-kazakov/gomr v0.0.0
+	github.com/a-kazakov/gomr v0.0.0-20260309050634-39726027a8a7
 	github.com/cespare/xxhash/v2 v2.3.0
 )
 

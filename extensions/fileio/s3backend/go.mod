@@ -3,7 +3,7 @@ module github.com/a-kazakov/gomr/extensions/fileio/s3backend
 go 1.26
 
 require (
-	github.com/a-kazakov/gomr/extensions/fileio v0.0.0
+	github.com/a-kazakov/gomr/extensions/fileio v0.0.0-20260309050634-39726027a8a7
 	github.com/aws/aws-sdk-go-v2 v1.41.1
 	github.com/aws/aws-sdk-go-v2/config v1.32.7
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.96.0
@@ -11,7 +11,7 @@ require (
 )
 
 require (
-	github.com/a-kazakov/gomr v0.0.0 // indirect
+	github.com/a-kazakov/gomr v0.0.0-20260309050634-39726027a8a7 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.4 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.7 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.17 // indirect
