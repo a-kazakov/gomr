@@ -112,6 +112,24 @@ func TestLocalBackend_Glob(t *testing.T) {
 	}
 }
 
+func TestLocalBackend_Glob_Doublestar(t *testing.T) {
+	dir := t.TempDir()
+	sub := filepath.Join(dir, "a", "b")
+	os.MkdirAll(sub, 0755)
+	os.WriteFile(filepath.Join(dir, "top.txt"), []byte("x"), 0644)
+	os.WriteFile(filepath.Join(dir, "a", "mid.txt"), []byte("x"), 0644)
+	os.WriteFile(filepath.Join(sub, "deep.txt"), []byte("x"), 0644)
+	os.WriteFile(filepath.Join(sub, "deep.log"), []byte("x"), 0644)
+
+	matches, err := LocalBackend.Glob(filepath.Join(dir, "**", "*.txt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(matches) != 3 {
+		t.Fatalf("got %d matches, want 3: %v", len(matches), matches)
+	}
+}
+
 func TestLocalBackend_Glob_FilePrefix(t *testing.T) {
 	dir := t.TempDir()
 	os.WriteFile(filepath.Join(dir, "f.dat"), []byte("x"), 0644)
