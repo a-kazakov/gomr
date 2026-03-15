@@ -6,7 +6,7 @@ import (
 	"io"
 	"os"
 	"path"
-	"path/filepath"
+	"github.com/bmatcuk/doublestar/v4"
 	"strings"
 	"sync"
 
@@ -99,7 +99,7 @@ func (b *s3Backend) Glob(pattern string) ([]string, error) {
 		}
 		for _, obj := range output.Contents {
 			key := aws.ToString(obj.Key)
-			matched, err := filepath.Match(keyPattern, key)
+			matched, err := doublestar.Match(keyPattern, key)
 			if err != nil {
 				return nil, fmt.Errorf("failed to match pattern %q against key %q: %w", keyPattern, key, err)
 			}

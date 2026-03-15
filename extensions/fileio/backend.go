@@ -3,8 +3,9 @@ package fileio
 import (
 	"io"
 	"os"
-	"path/filepath"
 	"strings"
+
+	"github.com/bmatcuk/doublestar/v4"
 )
 
 // Backend is the interface for file system operations.
@@ -28,7 +29,7 @@ func (b *localBackend) Create(path string) (io.WriteCloser, error) {
 }
 
 func (b *localBackend) Glob(pattern string) ([]string, error) {
-	matches, err := filepath.Glob(strings.TrimPrefix(pattern, "file://"))
+	matches, err := doublestar.FilepathGlob(strings.TrimPrefix(pattern, "file://"))
 	if err != nil {
 		return nil, err
 	}
