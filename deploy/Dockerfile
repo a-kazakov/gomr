@@ -12,8 +12,9 @@ RUN cd examples && go mod download
 # Copy the full source
 COPY . .
 
-# Build the examples binary
-RUN cd examples && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /app/bin/gomr-examples .
+# Build the examples binary for the target platform
+ARG TARGETOS TARGETARCH
+RUN cd examples && CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o /app/bin/gomr-examples .
 
 FROM alpine:3.21
 

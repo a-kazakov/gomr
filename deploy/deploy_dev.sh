@@ -12,4 +12,4 @@ trap 'popd' EXIT
 pushd "${FILE_DIR}"/../
 
 aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin "$ECR_HOST"
-docker buildx build . -f deploy/Dockerfile --tag "$ECR_URL:latest" --platform linux/amd64 --push --compress
+docker buildx build . -f deploy/Dockerfile --tag "$ECR_URL:latest" --platform linux/amd64,linux/arm64 --push --compress
