@@ -13,6 +13,7 @@ const __dirname = dirname(__filename);
 // Configuration from environment variables
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const STORAGE_URI = process.env.STORAGE_URI || 'fs:./server-data';
+const PUSH_AUTH_TOKEN = process.env.PUSH_AUTH_TOKEN || '';
 
 // Client dist path: resolve relative to server directory
 // This ensures the path is correct regardless of where the process starts
@@ -49,13 +50,27 @@ async function initializeServer(): Promise<void> {
     app.use(cors()); // Enable CORS for all routes
     app.use(express.json({ limit: '50mb' })); // Parse JSON bodies (up to 50MB)
 
+    // Auth middleware for sink endpoint
+    function requireSinkAuth(req: Request, res: Response, next: NextFunction): void {
+      if (!PUSH_AUTH_TOKEN) {
+        next();
+        return;
+      }
+      const authHeader = req.headers.authorization;
+      if (!authHeader || authHeader !== `Bearer ${PUSH_AUTH_TOKEN}`) {
+        res.status(401).json({ error: 'Unauthorized' });
+        return;
+      }
+      next();
+    }
+
     // API Routes
 
     /**
      * POST /sink/:jobId
      * Receives pipeline metrics data, enriches it with speed metrics, and saves it to storage.
      */
-    app.post('/sink/:jobId', async (req: Request, res: Response, next: NextFunction) => {
+    app.post('/sink/:jobId', requireSinkAuth, async (req: Request, res: Response, next: NextFunction) => {
       try {
         const { jobId } = req.params;
         const rawData = req.body as ServerResponse;

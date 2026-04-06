@@ -7,8 +7,9 @@ import (
 
 // MetricsParameters holds configuration for the metrics push system.
 type MetricsParameters struct {
-	PushURL      *Parameter[string]
-	PushInterval *Parameter[time.Duration]
+	PushURL        *Parameter[string]
+	PushInterval   *Parameter[time.Duration]
+	PushAuthHeader *Parameter[string]
 }
 
 func NewMetricsParameters() *MetricsParameters {
@@ -24,6 +25,12 @@ func NewMetricsParameters() *MetricsParameters {
 			"Interval between metrics pushes",
 			5*time.Second,
 			PositiveDuration,
+		),
+		PushAuthHeader: NewStringParam(
+			"metrics", "push_auth_header",
+			"Authorization header value for metrics push (e.g. 'Bearer <token>')",
+			"",
+			nil,
 		),
 	}
 }

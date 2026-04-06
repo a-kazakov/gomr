@@ -636,7 +636,7 @@ func TestMetricsPush(t *testing.T) {
 	t.Run("start with url", func(t *testing.T) {
 		p := NewPipeline()
 		// Use a fake URL -- the pusher goroutine will fail silently on push attempts
-		p.startMetricsPush("http://127.0.0.1:1/metrics", 1*time.Second, "test-job")
+		p.startMetricsPush("http://127.0.0.1:1/metrics", 1*time.Second, "test-job", "")
 		if p.metricsPusher == nil {
 			t.Fatal("metricsPusher should not be nil after startMetricsPush with valid URL")
 		}
@@ -649,7 +649,7 @@ func TestMetricsPush(t *testing.T) {
 	t.Run("stop", func(t *testing.T) {
 		p := NewPipeline()
 		// startMetricsPush with empty URL should be a no-op
-		p.startMetricsPush("", 0, "")
+		p.startMetricsPush("", 0, "", "")
 		if p.metricsPusher != nil {
 			t.Error("metricsPusher should be nil for empty URL")
 		}
@@ -659,7 +659,7 @@ func TestMetricsPush(t *testing.T) {
 
 	t.Run("empty url", func(t *testing.T) {
 		p := NewPipeline()
-		p.startMetricsPush("", 0, "")
+		p.startMetricsPush("", 0, "", "")
 		if p.metricsPusher != nil {
 			t.Error("metricsPusher should be nil for empty URL")
 		}
@@ -691,7 +691,7 @@ func TestMetricsPush(t *testing.T) {
 
 	t.Run("negative interval", func(t *testing.T) {
 		p := NewPipeline()
-		p.startMetricsPush("http://example.com", -1*time.Second, "test-job")
+		p.startMetricsPush("http://example.com", -1*time.Second, "test-job", "")
 		if p.metricsPusher != nil {
 			t.Error("metricsPusher should be nil for negative interval")
 		}

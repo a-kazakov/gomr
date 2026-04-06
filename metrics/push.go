@@ -14,19 +14,21 @@ type MetricsPusher struct {
 	url        string
 	interval   time.Duration
 	jobID      string
+	authHeader string
 	metrics    *PipelineMetrics
 	stopChan   chan struct{}
 	wg         sync.WaitGroup
 	httpClient *http.Client
 }
 
-func NewMetricsPusher(url string, interval time.Duration, jobID string, metrics *PipelineMetrics) *MetricsPusher {
+func NewMetricsPusher(url string, interval time.Duration, jobID string, authHeader string, metrics *PipelineMetrics) *MetricsPusher {
 	return &MetricsPusher{
-		url:      url,
-		interval: interval,
-		jobID:    jobID,
-		metrics:  metrics,
-		stopChan: make(chan struct{}),
+		url:        url,
+		interval:   interval,
+		jobID:      jobID,
+		authHeader: authHeader,
+		metrics:    metrics,
+		stopChan:   make(chan struct{}),
 		httpClient: &http.Client{
 			Timeout: 5 * time.Second,
 		},
@@ -93,6 +95,9 @@ func (mp *MetricsPusher) pushOnce() {
 		return
 	}
 	req.Header.Set("Content-Type", "application/json")
+	if mp.authHeader != "" {
+		req.Header.Set("Authorization", mp.authHeader)
+	}
 
 	// Send request
 	resp, err := mp.httpClient.Do(req)
