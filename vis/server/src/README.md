@@ -5,7 +5,7 @@ A Node.js/Express server that serves the React frontend and handles pipeline met
 ## Features
 
 - **API Endpoints**: 
-  - `POST /sink/:jobId` - Save pipeline metrics data
+  - `POST /push/:jobId` - Save pipeline metrics data
   - `GET /job/:jobId` - Retrieve pipeline metrics data
 - **Static File Serving**: Serves the built React app with SPA routing support
 - **Storage Abstraction**: Pluggable storage drivers (currently filesystem only)
@@ -46,7 +46,7 @@ The filesystem storage driver saves data as JSON files:
 
 ### Save metrics
 ```bash
-curl -X POST http://localhost:3000/sink/01ABC123 \
+curl -X POST http://localhost:3000/push/01ABC123 \
   -H "Content-Type: application/json" \
   -d '{"operations": {...}, "collections": {...}}'
 ```

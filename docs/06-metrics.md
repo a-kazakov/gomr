@@ -18,7 +18,7 @@ Or via flags:
 ./mypipeline -metrics.push_url=http://localhost:3000 -metrics.push_interval=2s
 ```
 
-When configured, the pipeline POSTs JSON snapshots to `{push_url}/sink/{job_id}` at the specified interval. A final snapshot is pushed when `WaitForCompletion()` returns.
+When configured, the pipeline POSTs JSON snapshots to `{push_url}/push/{job_id}` at the specified interval. A final snapshot is pushed when `WaitForCompletion()` returns.
 
 ## What Gets Tracked
 

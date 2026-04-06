@@ -450,8 +450,8 @@ func TestMetricsPusher(t *testing.T) {
 		pm := NewPipelineMetrics()
 		mp := NewMetricsPusher(server.URL, time.Second, "myjob", "", pm)
 		mp.pushOnce()
-		if receivedPath != "/sink/myjob" {
-			t.Errorf("path = %q, want /sink/myjob", receivedPath)
+		if receivedPath != "/push/myjob" {
+			t.Errorf("path = %q, want /push/myjob", receivedPath)
 		}
 	})
 

@@ -14,6 +14,7 @@ const __dirname = dirname(__filename);
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const STORAGE_URI = process.env.STORAGE_URI || 'fs:./server-data';
 const PUSH_AUTH_TOKEN = process.env.PUSH_AUTH_TOKEN || '';
+const VIEW_BASIC_AUTH = process.env.VIEW_BASIC_AUTH || ''; // "user:password"
 
 // Client dist path: resolve relative to server directory
 // This ensures the path is correct regardless of where the process starts
@@ -50,8 +51,8 @@ async function initializeServer(): Promise<void> {
     app.use(cors()); // Enable CORS for all routes
     app.use(express.json({ limit: '50mb' })); // Parse JSON bodies (up to 50MB)
 
-    // Auth middleware for sink endpoint
-    function requireSinkAuth(req: Request, res: Response, next: NextFunction): void {
+    // Auth middleware for push endpoint
+    function requirePushAuth(req: Request, res: Response, next: NextFunction): void {
       if (!PUSH_AUTH_TOKEN) {
         next();
         return;
@@ -64,13 +65,34 @@ async function initializeServer(): Promise<void> {
       next();
     }
 
+    // Basic auth middleware for viewing
+    function requireViewAuth(req: Request, res: Response, next: NextFunction): void {
+      if (!VIEW_BASIC_AUTH) {
+        next();
+        return;
+      }
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Basic ')) {
+        res.set('WWW-Authenticate', 'Basic realm="gomr-vis"');
+        res.status(401).json({ error: 'Unauthorized' });
+        return;
+      }
+      const credentials = Buffer.from(authHeader.slice(6), 'base64').toString();
+      if (credentials !== VIEW_BASIC_AUTH) {
+        res.set('WWW-Authenticate', 'Basic realm="gomr-vis"');
+        res.status(401).json({ error: 'Unauthorized' });
+        return;
+      }
+      next();
+    }
+
     // API Routes
 
     /**
-     * POST /sink/:jobId
+     * POST /push/:jobId
      * Receives pipeline metrics data, enriches it with speed metrics, and saves it to storage.
      */
-    app.post('/sink/:jobId', requireSinkAuth, async (req: Request, res: Response, next: NextFunction) => {
+    app.post('/push/:jobId', requirePushAuth, async (req: Request, res: Response, next: NextFunction) => {
       try {
         const { jobId } = req.params;
         const rawData = req.body as ServerResponse;
@@ -94,7 +116,7 @@ async function initializeServer(): Promise<void> {
      * GET /job/:jobId
      * Retrieves pipeline metrics data for a given job ID.
      */
-    app.get('/job/:jobId', async (req: Request, res: Response, next: NextFunction) => {
+    app.get('/job/:jobId', requireViewAuth, async (req: Request, res: Response, next: NextFunction) => {
       try {
         const { jobId } = req.params;
 
@@ -115,16 +137,16 @@ async function initializeServer(): Promise<void> {
     });
 
     // Static file serving for React app
-    app.use(express.static(CLIENT_DIST_PATH, {
+    app.use(requireViewAuth, express.static(CLIENT_DIST_PATH, {
       // Don't send index.html for API routes
       index: false,
     }));
 
     // SPA Fallback: Send index.html for any unknown GET request
     // This allows React Router to handle client-side routing
-    app.get('*', (req: Request, res: Response) => {
+    app.get('*', requireViewAuth, (req: Request, res: Response) => {
       // Only handle GET requests that aren't API routes
-      if (req.method === 'GET' && !req.path.startsWith('/sink/') && !req.path.startsWith('/job/')) {
+      if (req.method === 'GET' && !req.path.startsWith('/push/') && !req.path.startsWith('/job/')) {
         res.sendFile(join(CLIENT_DIST_PATH, 'index.html'));
       } else {
         res.status(404).json({ error: 'Not found' });

@@ -88,7 +88,7 @@ func (mp *MetricsPusher) pushOnce() {
 	}
 
 	// Create request
-	url := fmt.Sprintf("%s/sink/%s", mp.url, mp.jobID)
+	url := fmt.Sprintf("%s/push/%s", mp.url, mp.jobID)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(data))
 	if err != nil {
 		slog.Error("failed to create metrics push request", "error", err)

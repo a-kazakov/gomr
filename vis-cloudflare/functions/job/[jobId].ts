@@ -1,6 +1,24 @@
 import { Env } from '../types';
 
 export const onRequestGet: PagesFunction<Env, 'jobId'> = async (context) => {
+  const expectedAuth = context.env.VIEW_BASIC_AUTH;
+  if (expectedAuth) {
+    const authHeader = context.request.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Basic ')) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json', 'WWW-Authenticate': 'Basic realm="gomr-vis"' },
+      });
+    }
+    const credentials = atob(authHeader.slice(6));
+    if (credentials !== expectedAuth) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json', 'WWW-Authenticate': 'Basic realm="gomr-vis"' },
+      });
+    }
+  }
+
   const jobId = context.params.jobId as string;
 
   if (!jobId) {
