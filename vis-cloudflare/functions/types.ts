@@ -86,4 +86,6 @@ export interface ServerValue {
 
 export interface Env {
   GOMR_VIS: KVNamespace;
+  PUSH_AUTH_TOKEN?: string;
+  VIEW_BASIC_AUTH?: string; // "user:password"
 }

@@ -53,5 +53,5 @@ After the first deploy, bind the KV namespace to the Pages project in the Cloudf
 
 Identical to gomr-vis:
 
-- `POST /sink/:jobId` -- push a pipeline metrics snapshot
+- `POST /push/:jobId` -- push a pipeline metrics snapshot
 - `GET /job/:jobId` -- retrieve the latest enriched snapshot

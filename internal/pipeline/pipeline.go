@@ -44,8 +44,9 @@ func NewPipelineWithParameters(params *parameters.Parameters) *Pipeline {
 	// Start metrics push if configured
 	pushURL := p.Parameters.Metrics.PushURL.Get()
 	pushInterval := p.Parameters.Metrics.GetPushInterval()
+	pushAuthHeader := p.Parameters.Metrics.PushAuthHeader.Get()
 	if pushURL != "" && pushInterval > 0 {
-		p.startMetricsPush(pushURL, pushInterval, p.jobID)
+		p.startMetricsPush(pushURL, pushInterval, p.jobID, pushAuthHeader)
 	}
 
 	return p
@@ -108,12 +109,12 @@ func (p *Pipeline) BuildOperatorContexts(
 	return result
 }
 
-func (p *Pipeline) startMetricsPush(pushURL string, pushInterval time.Duration, jobID string) {
+func (p *Pipeline) startMetricsPush(pushURL string, pushInterval time.Duration, jobID string, authHeader string) {
 	if pushURL == "" || pushInterval <= 0 {
 		return
 	}
 
-	pusher := metrics.NewMetricsPusher(pushURL, pushInterval, jobID, p.Metrics)
+	pusher := metrics.NewMetricsPusher(pushURL, pushInterval, jobID, authHeader, p.Metrics)
 	pusher.Start()
 	p.metricsPusher = pusher
 }

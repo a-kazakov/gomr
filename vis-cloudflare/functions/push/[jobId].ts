@@ -6,6 +6,14 @@ function sanitizeJobId(jobId: string): string {
 }
 
 export const onRequestPost: PagesFunction<Env, 'jobId'> = async (context) => {
+  const expectedToken = context.env.PUSH_AUTH_TOKEN;
+  if (expectedToken) {
+    const authHeader = context.request.headers.get('Authorization');
+    if (!authHeader || authHeader !== `Bearer ${expectedToken}`) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+  }
+
   const jobId = context.params.jobId as string;
 
   if (!jobId) {

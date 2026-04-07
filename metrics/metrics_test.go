@@ -411,7 +411,7 @@ func TestSnapshots(t *testing.T) {
 func TestMetricsPusher(t *testing.T) {
 	t.Run("empty url no-ops", func(t *testing.T) {
 		pm := NewPipelineMetrics()
-		mp := NewMetricsPusher("", time.Second, "job1", pm)
+		mp := NewMetricsPusher("", time.Second, "job1", "", pm)
 		mp.Start() // should not start goroutine
 		mp.Stop()
 	})
@@ -432,7 +432,7 @@ func TestMetricsPusher(t *testing.T) {
 
 		pm := NewPipelineMetrics()
 		pm.AddOperation(core.OPERATION_KIND_MAP, "op")
-		mp := NewMetricsPusher(server.URL, time.Second, "testjob", pm)
+		mp := NewMetricsPusher(server.URL, time.Second, "testjob", "", pm)
 		mp.pushOnce()
 		if !received {
 			t.Error("expected HTTP request to be received")
@@ -448,10 +448,42 @@ func TestMetricsPusher(t *testing.T) {
 		defer server.Close()
 
 		pm := NewPipelineMetrics()
-		mp := NewMetricsPusher(server.URL, time.Second, "myjob", pm)
+		mp := NewMetricsPusher(server.URL, time.Second, "myjob", "", pm)
 		mp.pushOnce()
-		if receivedPath != "/sink/myjob" {
-			t.Errorf("path = %q, want /sink/myjob", receivedPath)
+		if receivedPath != "/push/myjob" {
+			t.Errorf("path = %q, want /push/myjob", receivedPath)
+		}
+	})
+
+	t.Run("push with auth header", func(t *testing.T) {
+		var receivedAuth string
+		server := newTestServerOrSkip(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			receivedAuth = r.Header.Get("Authorization")
+			w.WriteHeader(http.StatusOK)
+		}))
+		defer server.Close()
+
+		pm := NewPipelineMetrics()
+		mp := NewMetricsPusher(server.URL, time.Second, "testjob", "Bearer my-secret-token", pm)
+		mp.pushOnce()
+		if receivedAuth != "Bearer my-secret-token" {
+			t.Errorf("Authorization = %q, want %q", receivedAuth, "Bearer my-secret-token")
+		}
+	})
+
+	t.Run("push without auth header", func(t *testing.T) {
+		var receivedAuth string
+		server := newTestServerOrSkip(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			receivedAuth = r.Header.Get("Authorization")
+			w.WriteHeader(http.StatusOK)
+		}))
+		defer server.Close()
+
+		pm := NewPipelineMetrics()
+		mp := NewMetricsPusher(server.URL, time.Second, "testjob", "", pm)
+		mp.pushOnce()
+		if receivedAuth != "" {
+			t.Errorf("Authorization = %q, want empty", receivedAuth)
 		}
 	})
 
@@ -464,7 +496,7 @@ func TestMetricsPusher(t *testing.T) {
 		defer server.Close()
 
 		pm := NewPipelineMetrics()
-		mp := NewMetricsPusher(server.URL, 50*time.Millisecond, "testjob", pm)
+		mp := NewMetricsPusher(server.URL, 50*time.Millisecond, "testjob", "", pm)
 		mp.Start()
 		time.Sleep(200 * time.Millisecond)
 		mp.Stop()
@@ -474,14 +506,14 @@ func TestMetricsPusher(t *testing.T) {
 	})
 
 	t.Run("nil metrics", func(t *testing.T) {
-		mp := NewMetricsPusher("http://localhost", time.Second, "job1", nil)
+		mp := NewMetricsPusher("http://localhost", time.Second, "job1", "", nil)
 		// pushOnce with nil metrics should not panic
 		mp.pushOnce()
 	})
 
 	t.Run("negative interval", func(t *testing.T) {
 		pm := NewPipelineMetrics()
-		mp := NewMetricsPusher("http://localhost", -1, "job1", pm)
+		mp := NewMetricsPusher("http://localhost", -1, "job1", "", pm)
 		mp.Start() // should not start goroutine due to interval <= 0
 		mp.Stop()
 	})
@@ -493,21 +525,21 @@ func TestMetricsPusher(t *testing.T) {
 		defer server.Close()
 
 		pm := NewPipelineMetrics()
-		mp := NewMetricsPusher(server.URL, time.Second, "job1", pm)
+		mp := NewMetricsPusher(server.URL, time.Second, "job1", "", pm)
 		// Should not panic on non-OK status
 		mp.pushOnce()
 	})
 
 	t.Run("bad url", func(t *testing.T) {
 		pm := NewPipelineMetrics()
-		mp := NewMetricsPusher("http://127.0.0.1:1", time.Second, "job1", pm)
+		mp := NewMetricsPusher("http://127.0.0.1:1", time.Second, "job1", "", pm)
 		// Should not panic on connection error
 		mp.pushOnce()
 	})
 
 	t.Run("invalid url", func(t *testing.T) {
 		pm := NewPipelineMetrics()
-		mp := NewMetricsPusher("://bad", time.Second, "job1", pm)
+		mp := NewMetricsPusher("://bad", time.Second, "job1", "", pm)
 		// Should not panic on bad URL
 		mp.pushOnce()
 	})
