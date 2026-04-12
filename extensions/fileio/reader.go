@@ -4,7 +4,7 @@ import "io"
 
 // Open opens a file for reading, applying the given options.
 func Open(path string, opts ...ReadOption) (io.ReadCloser, error) {
-	cfg := &ReadConfig{Backend: LocalBackend}
+	cfg := &ReadConfig{Backend: NewBackendRouter()}
 	for _, o := range opts {
 		o.ApplyReadConfig(cfg)
 	}

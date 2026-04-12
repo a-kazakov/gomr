@@ -14,7 +14,7 @@ func ListFiles(p gomr.Pipeline, pattern string, opts ...ReadFilesOption) gomr.Co
 
 func defaultReadFilesConfig() *ReadFilesConfig {
 	return &ReadFilesConfig{
-		Backend:       LocalBackend,
+		Backend:       NewBackendRouter(),
 		MaxLineLength: 1 << 20,
 		OperationName: "Read Files",
 		CollectionName: "Lines",
