@@ -2,7 +2,7 @@ package fileio
 
 // Glob returns paths matching the given pattern.
 func Glob(pattern string, opts ...GlobOption) ([]string, error) {
-	cfg := &GlobConfig{Backend: LocalBackend}
+	cfg := &GlobConfig{Backend: NewBackendRouter()}
 	for _, o := range opts {
 		o.ApplyGlobConfig(cfg)
 	}

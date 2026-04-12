@@ -79,7 +79,7 @@ func WriteFiles[TValue any, TSerializer FileSerializer[TValue]](
 	opts ...WriteFilesOption,
 ) gomr.Collection[string] {
 	cfg := &WriteFilesConfig{
-		Backend:        LocalBackend,
+		Backend:        NewBackendRouter(),
 		BufferSize:     16 * 1024 * 1024,
 		OperationName:  "Write Files",
 		CollectionName: "Produced Files",

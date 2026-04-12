@@ -144,6 +144,162 @@ func TestLocalBackend_Glob_FilePrefix(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// BackendRouter
+// ---------------------------------------------------------------------------
+
+func TestBackendRouter_LocalPaths(t *testing.T) {
+	dir := t.TempDir()
+	p := filepath.Join(dir, "test.txt")
+	os.WriteFile(p, []byte("hello"), 0644)
+
+	r := NewBackendRouter()
+
+	// Open local path
+	rc, err := r.Open(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, _ := io.ReadAll(rc)
+	rc.Close()
+	if string(data) != "hello" {
+		t.Fatalf("got %q, want %q", data, "hello")
+	}
+
+	// Create local path
+	out := filepath.Join(dir, "out.txt")
+	wc, err := r.Create(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wc.Write([]byte("world"))
+	wc.Close()
+	got, _ := os.ReadFile(out)
+	if string(got) != "world" {
+		t.Fatalf("got %q, want %q", got, "world")
+	}
+
+	// Glob local path
+	matches, err := r.Glob(filepath.Join(dir, "*.txt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(matches) != 2 {
+		t.Fatalf("got %d matches, want 2", len(matches))
+	}
+}
+
+func TestBackendRouter_FilePrefixPaths(t *testing.T) {
+	dir := t.TempDir()
+	p := filepath.Join(dir, "test.txt")
+	os.WriteFile(p, []byte("data"), 0644)
+
+	r := NewBackendRouter()
+
+	rc, err := r.Open("file://" + p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, _ := io.ReadAll(rc)
+	rc.Close()
+	if string(data) != "data" {
+		t.Fatalf("got %q, want %q", data, "data")
+	}
+}
+
+func TestBackendRouter_UnregisteredScheme(t *testing.T) {
+	r := NewBackendRouter()
+
+	_, err := r.Open("s3://bucket/key.txt")
+	if err == nil {
+		t.Fatal("expected error for unregistered s3:// scheme in Open")
+	}
+	if !strings.Contains(err.Error(), `no backend registered for scheme "s3"`) {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	_, err = r.Create("s3://bucket/key.txt")
+	if err == nil {
+		t.Fatal("expected error for unregistered s3:// scheme in Create")
+	}
+
+	_, err = r.Glob("s3://bucket/*.txt")
+	if err == nil {
+		t.Fatal("expected error for unregistered s3:// scheme in Glob")
+	}
+}
+
+func TestBackendRouter_RegisteredScheme(t *testing.T) {
+	r := NewBackendRouter()
+	fake := &fakeBackend{openData: "from-fake"}
+	r.Register("s3", fake)
+
+	rc, err := r.Open("s3://bucket/key.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, _ := io.ReadAll(rc)
+	rc.Close()
+	if string(data) != "from-fake" {
+		t.Fatalf("got %q, want %q", data, "from-fake")
+	}
+
+	// Local paths should still go through local backend
+	dir := t.TempDir()
+	p := filepath.Join(dir, "local.txt")
+	os.WriteFile(p, []byte("local"), 0644)
+	rc, err = r.Open(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, _ = io.ReadAll(rc)
+	rc.Close()
+	if string(data) != "local" {
+		t.Fatalf("got %q, want %q", data, "local")
+	}
+}
+
+func TestAsBackendRouter_ExistingRouter(t *testing.T) {
+	r := NewBackendRouter()
+	r.Register("gs", &fakeBackend{})
+	r2 := AsBackendRouter(r)
+	if r2 != r {
+		t.Fatal("AsBackendRouter should return the same router if already a *BackendRouter")
+	}
+}
+
+func TestAsBackendRouter_WrapPlainBackend(t *testing.T) {
+	r := AsBackendRouter(LocalBackend)
+	// Should work for local paths
+	dir := t.TempDir()
+	p := filepath.Join(dir, "test.txt")
+	os.WriteFile(p, []byte("wrapped"), 0644)
+	rc, err := r.Open(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, _ := io.ReadAll(rc)
+	rc.Close()
+	if string(data) != "wrapped" {
+		t.Fatalf("got %q, want %q", data, "wrapped")
+	}
+}
+
+// fakeBackend is a test double for scheme-based routing tests.
+type fakeBackend struct {
+	openData string
+}
+
+func (f *fakeBackend) Open(_ string) (io.ReadCloser, error) {
+	return io.NopCloser(strings.NewReader(f.openData)), nil
+}
+func (f *fakeBackend) Create(_ string) (io.WriteCloser, error) {
+	return NewFakeWriteCloser(&bytes.Buffer{}), nil
+}
+func (f *fakeBackend) Glob(_ string) ([]string, error) {
+	return nil, nil
+}
+
+// ---------------------------------------------------------------------------
 // Open / Create round-trip
 // ---------------------------------------------------------------------------
 

@@ -19,7 +19,7 @@ func (w *closableBufferedWriter) Close() error {
 
 // Create creates a file for writing, applying the given options.
 func Create(path string, opts ...WriteOption) (io.WriteCloser, error) {
-	cfg := &WriteConfig{Backend: LocalBackend}
+	cfg := &WriteConfig{Backend: NewBackendRouter()}
 	for _, o := range opts {
 		o.ApplyWriteConfig(cfg)
 	}
