@@ -1,10 +1,6 @@
 name = "gomr-vis"
-main = "src/worker.ts"
 compatibility_date = "2024-12-01"
-
-[assets]
-directory = "./client/dist"
-binding = "ASSETS"
+pages_build_output_dir = "client/dist"
 
 # Cold storage for final status of destroyed DOs
 [[kv_namespaces]]

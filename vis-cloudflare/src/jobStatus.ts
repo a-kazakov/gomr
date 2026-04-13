@@ -29,10 +29,10 @@ export class JobStatus extends DurableObject<Env> {
     }
 
     if (request.headers.get('Upgrade')?.toLowerCase() === 'websocket') {
-      return this.handleWebSocket();
+      return this.handleWebSocket(request);
     }
 
-    return this.handleGetStatus();
+    return this.handleGetStatus(request);
   }
 
   private async handleStatusPost(request: Request): Promise<Response> {
@@ -81,21 +81,54 @@ export class JobStatus extends DurableObject<Env> {
     return new Response(null, { status: 204 });
   }
 
-  private async handleWebSocket(): Promise<Response> {
+  /**
+   * If the DO has no stored status, check the legacy GOMR_VIS KV namespace.
+   * This handles old jobs that were written before the DO migration. On hit,
+   * the data is persisted into DO storage so subsequent reads are fast and
+   * the alarm lifecycle kicks in.
+   */
+  private async hydrateFromLegacyKV(
+    jobId: string,
+  ): Promise<{ status: string; updatedAt: number } | null> {
+    if (!jobId || !this.env.GOMR_VIS) return null;
+
+    const sanitized = jobId.replace(/[^a-zA-Z0-9_-]/g, '_');
+    const kvData = await this.env.GOMR_VIS.get(`job:${sanitized}`, 'text');
+    if (!kvData) return null;
+
+    const updatedAt = Date.now();
+    await this.ctx.storage.put({ status: kvData, updatedAt, jobId });
+    await this.ctx.storage.setAlarm(updatedAt + this.housekeepMs);
+    return { status: kvData, updatedAt };
+  }
+
+  private async handleWebSocket(request: Request): Promise<Response> {
     const pair = new WebSocketPair();
     this.ctx.acceptWebSocket(pair[1]);
 
+    const url = new URL(request.url);
+    const reqJobId = url.searchParams.get('jobId') || '';
+
     // Send current status immediately so the client renders without waiting
     const data = await this.ctx.storage.get(['status', 'updatedAt', 'jobId']);
-    const status = data.get('status') as string | undefined;
-    const updatedAt = data.get('updatedAt') as number | undefined;
-    const jobId = data.get('jobId') as string | undefined;
+    let status = data.get('status') as string | undefined;
+    let updatedAt = data.get('updatedAt') as number | undefined;
+    const jobId = (data.get('jobId') as string) || reqJobId;
+
+    // Hydrate from legacy KV if DO has no stored status
+    if (!status) {
+      const hydrated = await this.hydrateFromLegacyKV(jobId);
+      if (hydrated) {
+        status = hydrated.status;
+        updatedAt = hydrated.updatedAt;
+      }
+    }
 
     if (status) {
       pair[1].send(
         JSON.stringify({
           type: 'status',
-          jobId: jobId || '',
+          jobId,
           status: JSON.parse(status),
           updatedAt: updatedAt || 0,
         }),
@@ -105,15 +138,27 @@ export class JobStatus extends DurableObject<Env> {
     return new Response(null, { status: 101, webSocket: pair[0] });
   }
 
-  private async handleGetStatus(): Promise<Response> {
+  private async handleGetStatus(request: Request): Promise<Response> {
+    const url = new URL(request.url);
+    const reqJobId = url.searchParams.get('jobId') || '';
+
     const data = await this.ctx.storage.get(['status', 'updatedAt', 'jobId']);
-    const status = data.get('status') as string | undefined;
-    const updatedAt = data.get('updatedAt') as number | undefined;
-    const jobId = data.get('jobId') as string | undefined;
+    let status = data.get('status') as string | undefined;
+    let updatedAt = data.get('updatedAt') as number | undefined;
+    const jobId = (data.get('jobId') as string) || reqJobId;
+
+    // Hydrate from legacy KV if DO has no stored status
+    if (!status) {
+      const hydrated = await this.hydrateFromLegacyKV(jobId);
+      if (hydrated) {
+        status = hydrated.status;
+        updatedAt = hydrated.updatedAt;
+      }
+    }
 
     if (status) {
       return Response.json({
-        jobId: jobId || '',
+        jobId,
         status: JSON.parse(status),
         updatedAt: updatedAt || 0,
         source: 'live',
