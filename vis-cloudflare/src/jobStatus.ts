@@ -37,13 +37,12 @@ export class JobStatus extends DurableObject<Env> {
 
   private async handleStatusPost(request: Request): Promise<Response> {
     const body = (await request.json()) as {
-      jobId?: string;
-      status?: ServerResponse;
+      jobId: string;
+      status: ServerResponse;
     };
     const url = new URL(request.url);
     const jobId = body.jobId || url.searchParams.get('jobId') || '';
-    const rawStatus: ServerResponse =
-      body.status || (body as unknown as ServerResponse);
+    const rawStatus = body.status;
 
     // Enrich with speed calculations
     this.history = pruneHistory(this.history, Date.now());
