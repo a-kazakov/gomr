@@ -226,18 +226,11 @@ export class JobStatus extends DurableObject<Env> {
   private async archiveToKV(): Promise<void> {
     const data = await this.ctx.storage.get(['status', 'updatedAt', 'jobId']);
     const status = data.get('status') as string | undefined;
-    const updatedAt = data.get('updatedAt') as number | undefined;
     const jobId = data.get('jobId') as string | undefined;
 
     if (status && jobId) {
-      await this.env.JOB_ARCHIVE.put(
-        jobId,
-        JSON.stringify({
-          status: JSON.parse(status),
-          updatedAt: updatedAt || 0,
-          archivedAt: Date.now(),
-        }),
-      );
+      const sanitized = jobId.replace(/[^a-zA-Z0-9_-]/g, '_');
+      await this.env.GOMR_VIS.put(`job:${sanitized}`, status);
     }
   }
 
