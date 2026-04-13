@@ -103,7 +103,7 @@ export default {
           ),
         );
 
-        // Dual-write to legacy KV for backward compat during migration
+        // Dual-write to KV for cold reads
         if (env.GOMR_VIS) {
           await env.GOMR_VIS.put(
             `job:${sanitizeJobId(body.jobId)}`,
@@ -175,9 +175,9 @@ export default {
         );
       }
 
-      // --- Legacy endpoints (backward compat) ---
+      // --- Original endpoints ---
 
-      // POST /push/:jobId — legacy upsert
+      // POST /push/:jobId — upsert (jobId in URL, raw body)
       const pushMatch = url.pathname.match(/^\/push\/([^/]+)$/);
       if (pushMatch && request.method === 'POST') {
         const authError = checkPushAuth(request, env);
@@ -204,7 +204,7 @@ export default {
           ),
         );
 
-        // Dual-write to legacy KV
+        // Dual-write to KV
         if (env.GOMR_VIS) {
           await env.GOMR_VIS.put(
             `job:${sanitizeJobId(jobId)}`,
@@ -220,7 +220,7 @@ export default {
         );
       }
 
-      // GET /job/:jobId — legacy read
+      // GET /job/:jobId — read (unwrapped format)
       const jobMatch = url.pathname.match(/^\/job\/([^/]+)$/);
       if (jobMatch && request.method === 'GET') {
         const authError = checkViewAuth(request, env);
@@ -237,7 +237,7 @@ export default {
         );
 
         if (doResponse.ok) {
-          // Return in legacy format (unwrapped status)
+          // Return unwrapped status (original format)
           const data = (await doResponse.json()) as { status: unknown };
           return addCorsHeaders(Response.json(data.status));
         }

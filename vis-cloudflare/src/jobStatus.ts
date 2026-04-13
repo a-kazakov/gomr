@@ -82,12 +82,10 @@ export class JobStatus extends DurableObject<Env> {
   }
 
   /**
-   * If the DO has no stored status, check the legacy GOMR_VIS KV namespace.
-   * This handles old jobs that were written before the DO migration. On hit,
-   * the data is persisted into DO storage so subsequent reads are fast and
-   * the alarm lifecycle kicks in.
+   * If the DO has no stored status, check KV. On hit, persist into DO
+   * storage so subsequent reads are fast and the alarm lifecycle kicks in.
    */
-  private async hydrateFromLegacyKV(
+  private async hydrateFromKV(
     jobId: string,
   ): Promise<{ status: string; updatedAt: number } | null> {
     if (!jobId || !this.env.GOMR_VIS) return null;
@@ -115,9 +113,9 @@ export class JobStatus extends DurableObject<Env> {
     let updatedAt = data.get('updatedAt') as number | undefined;
     const jobId = (data.get('jobId') as string) || reqJobId;
 
-    // Hydrate from legacy KV if DO has no stored status
+    // Hydrate from KV if DO has no stored status
     if (!status) {
-      const hydrated = await this.hydrateFromLegacyKV(jobId);
+      const hydrated = await this.hydrateFromKV(jobId);
       if (hydrated) {
         status = hydrated.status;
         updatedAt = hydrated.updatedAt;
@@ -147,9 +145,9 @@ export class JobStatus extends DurableObject<Env> {
     let updatedAt = data.get('updatedAt') as number | undefined;
     const jobId = (data.get('jobId') as string) || reqJobId;
 
-    // Hydrate from legacy KV if DO has no stored status
+    // Hydrate from KV if DO has no stored status
     if (!status) {
-      const hydrated = await this.hydrateFromLegacyKV(jobId);
+      const hydrated = await this.hydrateFromKV(jobId);
       if (hydrated) {
         status = hydrated.status;
         updatedAt = hydrated.updatedAt;
