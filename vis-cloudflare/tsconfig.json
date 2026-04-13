@@ -13,5 +13,5 @@
     "noEmit": true,
     "isolatedModules": true
   },
-  "include": ["functions/**/*.ts"]
+  "include": ["src/**/*.ts"]
 }

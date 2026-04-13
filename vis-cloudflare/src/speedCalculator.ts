@@ -1,30 +1,24 @@
 import { ServerResponse, ServerOperation } from './types';
 
-interface HistoryEntry {
+export interface HistoryEntry {
   timestamp: number;
   data: ServerResponse;
 }
 
-const jobHistory = new Map<string, HistoryEntry[]>();
-
 const MAX_HISTORY_AGE_MS = 10_000;
 const SPEED_WINDOW_MS = 5_000;
 
-function pruneHistory(jobId: string, currentTime: number): void {
-  const history = jobHistory.get(jobId);
-  if (!history) return;
-
+export function pruneHistory(
+  history: HistoryEntry[],
+  currentTime: number,
+): HistoryEntry[] {
   const cutoffTime = currentTime - MAX_HISTORY_AGE_MS;
-  const pruned = history.filter(entry => entry.timestamp >= cutoffTime);
-
-  if (pruned.length !== history.length) {
-    jobHistory.set(jobId, pruned);
-  }
+  return history.filter((entry) => entry.timestamp >= cutoffTime);
 }
 
 function findReferenceSnapshot(
   history: HistoryEntry[],
-  currentTime: number
+  currentTime: number,
 ): HistoryEntry | null {
   if (history.length === 0) return null;
 
@@ -43,7 +37,7 @@ function findReferenceSnapshot(
 function calculateNumberSpeed(
   currentValue: number,
   referenceValue: number,
-  timeDeltaSeconds: number
+  timeDeltaSeconds: number,
 ): number {
   if (timeDeltaSeconds <= 0) return 0;
   return (currentValue - referenceValue) / timeDeltaSeconds;
@@ -52,7 +46,7 @@ function calculateNumberSpeed(
 function calculateArraySpeed(
   currentArray: number[],
   referenceArray: number[],
-  timeDeltaSeconds: number
+  timeDeltaSeconds: number,
 ): number[] {
   if (timeDeltaSeconds <= 0) {
     return currentArray.map(() => 0);
@@ -73,12 +67,20 @@ function calculateArraySpeed(
 function enrichOperationWithSpeed(
   currentOp: ServerOperation,
   referenceOp: ServerOperation | null,
-  timeDeltaSeconds: number
+  timeDeltaSeconds: number,
 ): ServerOperation {
-  const currentElementsConsumed = currentOp.input_collections.map(c => c.elements_consumed);
-  const currentBatchesConsumed = currentOp.input_collections.map(c => c.batches_consumed);
-  const currentElementsProduced = currentOp.output_collections.map(c => c.elements_produced);
-  const currentBatchesProduced = currentOp.output_collections.map(c => c.batches_produced);
+  const currentElementsConsumed = currentOp.input_collections.map(
+    (c) => c.elements_consumed,
+  );
+  const currentBatchesConsumed = currentOp.input_collections.map(
+    (c) => c.batches_consumed,
+  );
+  const currentElementsProduced = currentOp.output_collections.map(
+    (c) => c.elements_produced,
+  );
+  const currentBatchesProduced = currentOp.output_collections.map(
+    (c) => c.batches_produced,
+  );
 
   const currentShuffle = currentOp.shuffle;
 
@@ -96,10 +98,18 @@ function enrichOperationWithSpeed(
     };
   }
 
-  const referenceElementsConsumed = referenceOp.input_collections.map(c => c.elements_consumed);
-  const referenceBatchesConsumed = referenceOp.input_collections.map(c => c.batches_consumed);
-  const referenceElementsProduced = referenceOp.output_collections.map(c => c.elements_produced);
-  const referenceBatchesProduced = referenceOp.output_collections.map(c => c.batches_produced);
+  const referenceElementsConsumed = referenceOp.input_collections.map(
+    (c) => c.elements_consumed,
+  );
+  const referenceBatchesConsumed = referenceOp.input_collections.map(
+    (c) => c.batches_consumed,
+  );
+  const referenceElementsProduced = referenceOp.output_collections.map(
+    (c) => c.elements_produced,
+  );
+  const referenceBatchesProduced = referenceOp.output_collections.map(
+    (c) => c.batches_produced,
+  );
 
   const referenceShuffle = referenceOp.shuffle;
 
@@ -108,67 +118,63 @@ function enrichOperationWithSpeed(
     elements_consumed_speed: calculateArraySpeed(
       currentElementsConsumed,
       referenceElementsConsumed,
-      timeDeltaSeconds
+      timeDeltaSeconds,
     ),
     batches_consumed_speed: calculateArraySpeed(
       currentBatchesConsumed,
       referenceBatchesConsumed,
-      timeDeltaSeconds
+      timeDeltaSeconds,
     ),
     elements_produced_speed: calculateArraySpeed(
       currentElementsProduced,
       referenceElementsProduced,
-      timeDeltaSeconds
+      timeDeltaSeconds,
     ),
     batches_produced_speed: calculateArraySpeed(
       currentBatchesProduced,
       referenceBatchesProduced,
-      timeDeltaSeconds
+      timeDeltaSeconds,
     ),
-    shuffle_spills_count_speed: currentShuffle && referenceShuffle
-      ? calculateNumberSpeed(
-          currentShuffle.spills_count,
-          referenceShuffle.spills_count,
-          timeDeltaSeconds
-        )
-      : 0,
-    shuffle_disk_usage_speed: currentShuffle && referenceShuffle
-      ? calculateNumberSpeed(
-          currentShuffle.disk_usage,
-          referenceShuffle.disk_usage,
-          timeDeltaSeconds
-        )
-      : 0,
-    elements_gathered_speed: currentShuffle && referenceShuffle
-      ? calculateNumberSpeed(
-          currentShuffle.elements_gathered,
-          referenceShuffle.elements_gathered,
-          timeDeltaSeconds
-        )
-      : 0,
-    groups_gathered_speed: currentShuffle && referenceShuffle
-      ? calculateNumberSpeed(
-          currentShuffle.groups_gathered,
-          referenceShuffle.groups_gathered,
-          timeDeltaSeconds
-        )
-      : 0,
+    shuffle_spills_count_speed:
+      currentShuffle && referenceShuffle
+        ? calculateNumberSpeed(
+            currentShuffle.spills_count,
+            referenceShuffle.spills_count,
+            timeDeltaSeconds,
+          )
+        : 0,
+    shuffle_disk_usage_speed:
+      currentShuffle && referenceShuffle
+        ? calculateNumberSpeed(
+            currentShuffle.disk_usage,
+            referenceShuffle.disk_usage,
+            timeDeltaSeconds,
+          )
+        : 0,
+    elements_gathered_speed:
+      currentShuffle && referenceShuffle
+        ? calculateNumberSpeed(
+            currentShuffle.elements_gathered,
+            referenceShuffle.elements_gathered,
+            timeDeltaSeconds,
+          )
+        : 0,
+    groups_gathered_speed:
+      currentShuffle && referenceShuffle
+        ? calculateNumberSpeed(
+            currentShuffle.groups_gathered,
+            referenceShuffle.groups_gathered,
+            timeDeltaSeconds,
+          )
+        : 0,
   };
 }
 
 export function enrichWithSpeed(
-  jobId: string,
-  currentData: ServerResponse
+  history: HistoryEntry[],
+  currentData: ServerResponse,
 ): ServerResponse {
   const currentTime = Date.now();
-
-  let history = jobHistory.get(jobId);
-  if (!history) {
-    history = [];
-    jobHistory.set(jobId, history);
-  }
-
-  pruneHistory(jobId, currentTime);
 
   const referenceEntry = findReferenceSnapshot(history, currentTime);
 
@@ -184,21 +190,14 @@ export function enrichWithSpeed(
     enrichedOperations[opId] = enrichOperationWithSpeed(
       currentOp,
       referenceOp,
-      timeDeltaSeconds
+      timeDeltaSeconds,
     );
   }
 
-  const enrichedData: ServerResponse = {
+  return {
     operations: enrichedOperations,
     collections: currentData.collections,
     values: currentData.values,
     user_counters: currentData.user_counters,
   };
-
-  history.push({
-    timestamp: currentTime,
-    data: currentData,
-  });
-
-  return enrichedData;
 }
