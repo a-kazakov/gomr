@@ -1,5 +1,5 @@
 import dagre from 'dagre';
-import { Node, Edge } from 'reactflow';
+import { Node, Edge } from '@xyflow/react';
 
 /**
  * Calculates node positions and edge waypoints using dagre layout algorithm.

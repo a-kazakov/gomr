@@ -102,7 +102,6 @@ export interface ServerResponse {
 
 export interface Env {
   JOB_STATUS: DurableObjectNamespace;
-  JOB_ARCHIVE: KVNamespace;
   GOMR_VIS: KVNamespace;
   ASSETS: Fetcher;
   PUSH_AUTH_TOKEN?: string;

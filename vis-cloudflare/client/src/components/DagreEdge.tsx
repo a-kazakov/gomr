@@ -1,10 +1,12 @@
-import { BaseEdge, EdgeLabelRenderer, EdgeProps } from 'reactflow';
+import { BaseEdge, EdgeLabelRenderer, type EdgeProps, type Edge } from '@xyflow/react';
 
-interface DagreEdgeData {
+interface DagreEdgeData extends Record<string, unknown> {
   points?: Array<{ x: number; y: number }>;
   labelX?: number;
   labelY?: number;
 }
+
+type DagreEdgeProps = EdgeProps<Edge<DagreEdgeData>>;
 
 /**
  * Returns a smooth SVG path string from an array of points using quadratic Bezier curves.
@@ -61,7 +63,7 @@ export default function DagreEdge({
   labelBgStyle,
   labelBgPadding,
   data,
-}: EdgeProps<DagreEdgeData>) {
+}: DagreEdgeProps) {
   const points = data?.points || [];
 
   // Construct smooth SVG path from waypoints

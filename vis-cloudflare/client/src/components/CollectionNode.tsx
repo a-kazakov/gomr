@@ -1,10 +1,9 @@
-import { Handle, Position, NodeProps } from 'reactflow';
+import { Handle, Position, type NodeProps, type Node } from '@xyflow/react';
 import { CollectionNodeData } from '../types/pipeline';
 import '../App.css';
 
-/**
- * Formats a number with appropriate suffix (K/M/B) or no suffix.
- */
+type CollectionNodeProps = NodeProps<Node<CollectionNodeData>>;
+
 function formatNumber(value: number): string {
   if (value < 1000) {
     return value.toString();
@@ -21,7 +20,7 @@ function formatNumber(value: number): string {
  * Collection node component for pipeline visualization.
  * Displays collection name on first line, and pressure bar with value on second line.
  */
-export default function CollectionNode({ data }: NodeProps<CollectionNodeData>) {
+export default function CollectionNode({ data }: CollectionNodeProps) {
   const pressurePercent = data.capacity > 0 
     ? Math.min(100, (data.pressure / data.capacity) * 100) 
     : 0;

@@ -1,13 +1,12 @@
 # gomr-vis-cloudflare
 
-Cloudflare Worker deployment of the gomr pipeline visualization tool. Uses Durable Objects for real-time status updates via WebSocket, with KV for cold storage of archived jobs.
+Cloudflare Worker deployment of the gomr pipeline visualization tool. Uses Durable Objects for real-time status updates via WebSocket, and KV for cold storage.
 
 ## Architecture
 
-- **Worker** — Stateless router handling API requests and static asset serving.
+- **Worker** — Routes API requests and serves static assets via `[assets]` binding.
 - **Durable Object (`JobStatus`)** — One instance per job. Stores current status, broadcasts to WebSocket clients, manages lifecycle via alarms.
-- **KV (`JOB_ARCHIVE`)** — Cold storage for final status of destroyed jobs.
-- **KV (`GOMR_VIS`)** — Legacy namespace kept for dual-write during migration. Can be removed once all clients use WebSocket.
+- **KV (`GOMR_VIS`)** — Persistent storage. The DO archives its final status here on destruction, and hydrates from it when waking up for the first time.
 
 ## Prerequisites
 
@@ -17,23 +16,18 @@ Cloudflare Worker deployment of the gomr pipeline visualization tool. Uses Durab
 
 ## Setup
 
-1. Create the KV namespaces:
+1. Create the KV namespace:
 
 ```bash
-wrangler kv namespace create JOB_ARCHIVE
 wrangler kv namespace create GOMR_VIS
 ```
 
-2. Copy the returned namespace IDs into `wrangler.toml`:
+2. Copy the returned namespace ID into `wrangler.toml`:
 
 ```toml
 [[kv_namespaces]]
-binding = "JOB_ARCHIVE"
-id = "<your-archive-namespace-id>"
-
-[[kv_namespaces]]
 binding = "GOMR_VIS"
-id = "<your-legacy-namespace-id>"
+id = "<your-namespace-id>"
 ```
 
 3. Install dependencies:
@@ -56,7 +50,7 @@ This builds the client and starts `wrangler dev` with local Durable Object and K
 npm run deploy
 ```
 
-This builds the client and deploys the Worker via `wrangler deploy`.
+This builds the client and deploys via `wrangler deploy`.
 
 ## Configuration
 
@@ -101,7 +95,7 @@ Messages from server:
 
 ### `GET /status/:jobId`
 
-Returns current status as JSON. Checks the live Durable Object first, falls back to KV archive.
+Returns current status as JSON. Checks the live Durable Object first, falls back to KV.
 
 ```json
 {
@@ -112,9 +106,7 @@ Returns current status as JSON. Checks the live Durable Object first, falls back
 }
 ```
 
-### Legacy endpoints
-
-These are preserved for backward compatibility during migration:
+### Original endpoints
 
 - `POST /push/:jobId` — Push pipeline metrics (raw body, jobId in URL).
 - `GET /job/:jobId` — Retrieve the latest enriched snapshot (unwrapped format).

@@ -103,22 +103,15 @@ export default {
           ),
         );
 
-        // Dual-write to legacy KV for backward compat during migration
-        if (env.GOMR_VIS) {
-          await env.GOMR_VIS.put(
-            `job:${sanitizeJobId(body.jobId)}`,
-            JSON.stringify(body.status),
-          ).catch(() => {});
-        }
-
         return addCorsHeaders(doResponse);
       }
 
       // GET /status/ws?jobId=X — WebSocket upgrade via DO
-      if (
-        url.pathname === '/status/ws' &&
-        request.headers.get('Upgrade')?.toLowerCase() === 'websocket'
-      ) {
+      // Match by path alone; the DO checks the Upgrade header itself.
+      if (url.pathname === '/status/ws') {
+        const authError = checkViewAuth(request, env);
+        if (authError) return addCorsHeaders(authError);
+
         const jobId = url.searchParams.get('jobId');
         if (!jobId) {
           return addCorsHeaders(
@@ -130,18 +123,16 @@ export default {
         }
 
         const stub = getDOStub(env, jobId);
-        // Forward the upgrade request to the DO
+        // Forward the full original request to preserve WebSocket upgrade semantics
         return stub.fetch(
           new Request(
             `${url.origin}/ws?jobId=${encodeURIComponent(jobId)}`,
-            {
-              headers: request.headers,
-            },
+            request,
           ),
         );
       }
 
-      // GET /status/:jobId — read status from DO (live) or KV archive (cold)
+      // GET /status/:jobId — read status from DO (live) or KV (cold)
       const statusMatch = url.pathname.match(/^\/status\/([^/]+)$/);
       if (statusMatch && request.method === 'GET') {
         const authError = checkViewAuth(request, env);
@@ -149,7 +140,7 @@ export default {
 
         const jobId = decodeURIComponent(statusMatch[1]);
 
-        // Try live DO first
+        // Try live DO first (DO also hydrates from KV internally)
         const stub = getDOStub(env, jobId);
         const doResponse = await stub.fetch(
           new Request(
@@ -161,30 +152,15 @@ export default {
           return addCorsHeaders(doResponse);
         }
 
-        // Fall back to KV archive
-        const archived = await env.JOB_ARCHIVE.get(
-          sanitizeJobId(jobId),
-          'json',
-        );
-        if (archived) {
-          return addCorsHeaders(
-            Response.json({
-              ...(archived as object),
-              jobId,
-              source: 'archive',
-            }),
-          );
-        }
-
-        // Fall back to legacy KV
+        // Fall back to KV directly
         if (env.GOMR_VIS) {
-          const oldData = await env.GOMR_VIS.get(
+          const kvData = await env.GOMR_VIS.get(
             `job:${sanitizeJobId(jobId)}`,
             'json',
           );
-          if (oldData) {
+          if (kvData) {
             return addCorsHeaders(
-              Response.json({ jobId, status: oldData, source: 'legacy' }),
+              Response.json({ jobId, status: kvData, source: 'kv' }),
             );
           }
         }
@@ -194,9 +170,9 @@ export default {
         );
       }
 
-      // --- Legacy endpoints (backward compat) ---
+      // --- Original endpoints ---
 
-      // POST /push/:jobId — legacy upsert
+      // POST /push/:jobId — upsert (jobId in URL, raw body)
       const pushMatch = url.pathname.match(/^\/push\/([^/]+)$/);
       if (pushMatch && request.method === 'POST') {
         const authError = checkPushAuth(request, env);
@@ -223,14 +199,6 @@ export default {
           ),
         );
 
-        // Dual-write to legacy KV
-        if (env.GOMR_VIS) {
-          await env.GOMR_VIS.put(
-            `job:${sanitizeJobId(jobId)}`,
-            JSON.stringify(rawBody),
-          ).catch(() => {});
-        }
-
         return addCorsHeaders(
           Response.json({
             success: true,
@@ -239,7 +207,7 @@ export default {
         );
       }
 
-      // GET /job/:jobId — legacy read
+      // GET /job/:jobId — read (unwrapped format)
       const jobMatch = url.pathname.match(/^\/job\/([^/]+)$/);
       if (jobMatch && request.method === 'GET') {
         const authError = checkViewAuth(request, env);
@@ -256,28 +224,19 @@ export default {
         );
 
         if (doResponse.ok) {
-          // Return in legacy format (unwrapped status)
+          // Return unwrapped status (original format)
           const data = (await doResponse.json()) as { status: unknown };
           return addCorsHeaders(Response.json(data.status));
         }
 
-        // Fall back to KV archive
-        const archived = (await env.JOB_ARCHIVE.get(
-          sanitizeJobId(jobId),
-          'json',
-        )) as { status: unknown } | null;
-        if (archived) {
-          return addCorsHeaders(Response.json(archived.status));
-        }
-
-        // Fall back to legacy KV
+        // Fall back to KV
         if (env.GOMR_VIS) {
-          const oldData = await env.GOMR_VIS.get(
+          const kvData = await env.GOMR_VIS.get(
             `job:${sanitizeJobId(jobId)}`,
             'json',
           );
-          if (oldData) {
-            return addCorsHeaders(Response.json(oldData));
+          if (kvData) {
+            return addCorsHeaders(Response.json(kvData));
           }
         }
 
@@ -287,13 +246,27 @@ export default {
       }
 
       // --- Static assets ---
-      const assetResponse = await env.ASSETS.fetch(request);
-      if (assetResponse.status !== 404) {
-        return assetResponse;
+      if (env.ASSETS) {
+        // Auth-gate page navigations so the browser caches credentials
+        // for subsequent API/WebSocket requests on the same origin
+        const isPageNav =
+          request.method === 'GET' &&
+          request.headers.get('Accept')?.includes('text/html');
+        if (isPageNav) {
+          const authError = checkViewAuth(request, env);
+          if (authError) return authError;
+        }
+
+        const assetResponse = await env.ASSETS.fetch(request);
+        if (assetResponse.status !== 404) {
+          return assetResponse;
+        }
+
+        // SPA fallback: serve index.html for unmatched routes
+        return env.ASSETS.fetch(new Request(`${url.origin}/index.html`));
       }
 
-      // SPA fallback: serve index.html for unmatched routes
-      return env.ASSETS.fetch(new Request(`${url.origin}/index.html`));
+      return new Response('Not Found', { status: 404 });
     } catch (error) {
       const message =
         error instanceof Error ? error.message : 'Unknown error';

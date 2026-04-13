@@ -5,13 +5,10 @@ compatibility_date = "2024-12-01"
 [assets]
 directory = "./client/dist"
 binding = "ASSETS"
+html_handling = "none"
+not_found_handling = "none"
+serve_directly = false
 
-# Cold storage for final status of destroyed DOs
-[[kv_namespaces]]
-binding = "JOB_ARCHIVE"
-id = "PLACEHOLDER_KV_ARCHIVE_ID"
-
-# Legacy KV namespace — kept for dual-write during migration
 [[kv_namespaces]]
 binding = "GOMR_VIS"
 id = "PLACEHOLDER_KV_ID"
