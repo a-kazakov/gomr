@@ -1,17 +1,25 @@
-export type OperationKind = 'seed' | 'map' | 'shuffle' | 'fork' | 'merge' | 'collect';
+export type OperationKind =
+  | 'seed'
+  | 'map'
+  | 'map_value'
+  | 'shuffle'
+  | 'fork'
+  | 'merge'
+  | 'collect';
 
-export type OperationPhase = '' | 'running' | 'scattering' | 'flushing' | 'gathering' | 'pre-collect' | 'aggregate' | 'completed';
+export type OperationPhase =
+  | ''
+  | 'running'
+  | 'scattering'
+  | 'flushing'
+  | 'gathering'
+  | 'pre-collect'
+  | 'aggregate'
+  | 'completed';
 
 export interface PhaseSwitchSnapshot {
   phase_name: string;
   switch_timestamp: string;
-}
-
-export interface ServerResponse {
-  operations: Record<string, ServerOperation>;
-  collections: Record<string, ServerCollection>;
-  values?: Record<string, ServerValue>;
-  user_counters?: Record<string, number>;
 }
 
 export interface ServerInputCollection {
@@ -57,6 +65,7 @@ export interface ServerOperation {
   output_values: ServerOutputValue[];
   user_counters?: Record<string, number>;
 
+  // Speed metrics (added during enrichment)
   elements_consumed_speed?: number[];
   batches_consumed_speed?: number[];
   elements_produced_speed?: number[];
@@ -84,8 +93,21 @@ export interface ServerValue {
   user_counters?: Record<string, number>;
 }
 
+export interface ServerResponse {
+  operations: Record<string, ServerOperation>;
+  collections: Record<string, ServerCollection>;
+  values?: Record<string, ServerValue>;
+  user_counters?: Record<string, number>;
+}
+
 export interface Env {
+  JOB_STATUS: DurableObjectNamespace;
+  JOB_ARCHIVE: KVNamespace;
   GOMR_VIS: KVNamespace;
+  ASSETS: Fetcher;
   PUSH_AUTH_TOKEN?: string;
-  VIEW_BASIC_AUTH?: string; // "user:password"
+  VIEW_BASIC_AUTH?: string;
+  SELF_DESTRUCT_MS?: string;
+  IDLE_QUIET_MS?: string;
+  HOUSEKEEP_MS?: string;
 }

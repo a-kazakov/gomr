@@ -1,6 +1,13 @@
 # gomr-vis-cloudflare
 
-Cloudflare Pages deployment of the gomr pipeline visualization tool. Uses Cloudflare KV for storage and Pages Functions for the API.
+Cloudflare Worker deployment of the gomr pipeline visualization tool. Uses Durable Objects for real-time status updates via WebSocket, with KV for cold storage of archived jobs.
+
+## Architecture
+
+- **Worker** — Stateless router handling API requests and static asset serving.
+- **Durable Object (`JobStatus`)** — One instance per job. Stores current status, broadcasts to WebSocket clients, manages lifecycle via alarms.
+- **KV (`JOB_ARCHIVE`)** — Cold storage for final status of destroyed jobs.
+- **KV (`GOMR_VIS`)** — Legacy namespace kept for dual-write during migration. Can be removed once all clients use WebSocket.
 
 ## Prerequisites
 
@@ -10,18 +17,23 @@ Cloudflare Pages deployment of the gomr pipeline visualization tool. Uses Cloudf
 
 ## Setup
 
-1. Create a KV namespace:
+1. Create the KV namespaces:
 
 ```bash
+wrangler kv namespace create JOB_ARCHIVE
 wrangler kv namespace create GOMR_VIS
 ```
 
-2. Copy the returned namespace ID into `wrangler.toml`:
+2. Copy the returned namespace IDs into `wrangler.toml`:
 
 ```toml
 [[kv_namespaces]]
+binding = "JOB_ARCHIVE"
+id = "<your-archive-namespace-id>"
+
+[[kv_namespaces]]
 binding = "GOMR_VIS"
-id = "<your-namespace-id>"
+id = "<your-legacy-namespace-id>"
 ```
 
 3. Install dependencies:
@@ -36,7 +48,7 @@ npm install
 npm run dev
 ```
 
-This builds the client and starts `wrangler pages dev` with a local KV emulation on port 8788.
+This builds the client and starts `wrangler dev` with local Durable Object and KV emulation.
 
 ## Deploy
 
@@ -44,14 +56,65 @@ This builds the client and starts `wrangler pages dev` with a local KV emulation
 npm run deploy
 ```
 
-This builds the client and deploys to Cloudflare Pages via `wrangler pages deploy`.
+This builds the client and deploys the Worker via `wrangler deploy`.
 
-After the first deploy, bind the KV namespace to the Pages project in the Cloudflare dashboard:
-**Pages project > Settings > Functions > KV namespace bindings** -- bind `GOMR_VIS` to the namespace you created.
+## Configuration
+
+Environment variables (set via `wrangler secret` or dashboard):
+
+| Variable | Default | Description |
+|---|---|---|
+| `PUSH_AUTH_TOKEN` | — | Bearer token required for push endpoints. Omit to disable auth. |
+| `VIEW_BASIC_AUTH` | — | `user:password` for basic auth on read endpoints. |
+| `SELF_DESTRUCT_MS` | `31536000000` | Hard TTL (1 year) after which DOs always self-destruct. |
+| `IDLE_QUIET_MS` | `3600000` | Time (1 hour) with no updates and no clients before early cleanup. |
+| `HOUSEKEEP_MS` | `86400000` | Interval (24 hours) between housekeeping alarm checks. |
 
 ## API
 
-Identical to gomr-vis:
+### `POST /status`
 
-- `POST /push/:jobId` -- push a pipeline metrics snapshot
-- `GET /job/:jobId` -- retrieve the latest enriched snapshot
+Upsert job status. Creates or updates the Durable Object for the given job.
+
+```json
+{
+  "jobId": "pipeline-abc-123",
+  "status": {
+    "operations": { ... },
+    "collections": { ... },
+    "values": { ... }
+  }
+}
+```
+
+Response: `204 No Content`
+
+### `GET /status/ws?jobId=pipeline-abc-123`
+
+WebSocket endpoint. Receives real-time status pushes.
+
+Messages from server:
+```json
+{ "type": "status", "jobId": "...", "status": { ... }, "updatedAt": 1713000000000 }
+{ "type": "closed", "reason": "idle_timeout" }
+```
+
+### `GET /status/:jobId`
+
+Returns current status as JSON. Checks the live Durable Object first, falls back to KV archive.
+
+```json
+{
+  "jobId": "pipeline-abc-123",
+  "status": { ... },
+  "updatedAt": 1713000000000,
+  "source": "live"
+}
+```
+
+### Legacy endpoints
+
+These are preserved for backward compatibility during migration:
+
+- `POST /push/:jobId` — Push pipeline metrics (raw body, jobId in URL).
+- `GET /job/:jobId` — Retrieve the latest enriched snapshot (unwrapped format).

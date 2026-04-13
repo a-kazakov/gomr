@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "npm run build:client && wrangler pages dev client/dist --kv=GOMR_VIS",
+    "dev": "npm run build:client && wrangler dev",
     "build:client": "cd client && npm run build",
-    "deploy": "npm run build:client && wrangler pages deploy client/dist",
+    "deploy": "npm run build:client && wrangler deploy",
     "postinstall": "cd client && npm install"
   },
   "devDependencies": {
