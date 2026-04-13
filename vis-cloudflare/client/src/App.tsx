@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import ReactFlow, { Controls, Node, EdgeTypes } from 'reactflow';
+import { ReactFlow, Controls, Node, type EdgeTypes } from '@xyflow/react';
 import { useRealtimeGraph } from './hooks/useRealtimeGraph';
 import PipelineNode from './components/PipelineNode';
 import CollectionNode from './components/CollectionNode';
@@ -7,7 +7,7 @@ import ValueNode from './components/ValueNode';
 import DagreEdge from './components/DagreEdge';
 import InfoPanel from './components/InfoPanel';
 import { NodeData } from './types/pipeline';
-import 'reactflow/dist/style.css';
+import '@xyflow/react/dist/style.css';
 import './App.css';
 
 // Define outside component to prevent re-creation on every render
@@ -39,8 +39,8 @@ export default function App() {
   // Local UI state (selection)
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   
-  const selectedNode: Node<NodeData> | null = selectedNodeId 
-    ? (nodes.find((n) => n.id === selectedNodeId) ?? null)
+  const selectedNode: Node<NodeData> | null = selectedNodeId
+    ? (nodes.find((n) => n.id === selectedNodeId) as Node<NodeData> | undefined) ?? null
     : null;
 
   return (

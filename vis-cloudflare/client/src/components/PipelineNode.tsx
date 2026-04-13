@@ -1,12 +1,9 @@
-import { Handle, Position, NodeProps } from 'reactflow';
+import { Handle, Position, type NodeProps, type Node } from '@xyflow/react';
 import { CustomNodeData } from '../types/pipeline';
 import '../App.css';
 
-/**
- * Formats a number with appropriate suffix (K/M/B) or no suffix.
- * Examples: 123 -> "123", 123.45 -> "123.45", 1234 -> "1.23K", 1234567 -> "1.23M", 1234567890 -> "1.23B"
- * For values < 1K, shows up to 2 decimal places if needed, otherwise shows as integer.
- */
+type PipelineNodeProps = NodeProps<Node<CustomNodeData>>;
+
 function formatNumber(value: number): string {
   if (value < 1000) {
     // For values < 1K, show up to 2 decimal places if not a whole number
@@ -29,7 +26,7 @@ function formatNumber(value: number): string {
  * Custom node component for pipeline visualization.
  * Renders a node with title, operation type badge, and status-based styling.
  */
-export default function PipelineNode({ data }: NodeProps<CustomNodeData>) {
+export default function PipelineNode({ data }: PipelineNodeProps) {
   // Normalize phase: empty string from Go backend represents "pending"
   const phaseClass = data.phase || 'pending';
   

@@ -1,12 +1,10 @@
-import { Handle, Position, NodeProps } from 'reactflow';
+import { Handle, Position, type NodeProps, type Node } from '@xyflow/react';
 import { ValueNodeData } from '../types/pipeline';
 import '../App.css';
 
-/**
- * Value node component for pipeline visualization.
- * Displays value name and status (PENDING/RESOLVED).
- */
-export default function ValueNode({ data }: NodeProps<ValueNodeData>) {
+type ValueNodeComponentProps = NodeProps<Node<ValueNodeData>>;
+
+export default function ValueNode({ data }: ValueNodeComponentProps) {
   const isResolved = data.is_resolved;
 
   return (

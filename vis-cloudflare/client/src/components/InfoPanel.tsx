@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Node } from 'reactflow';
+import { type Node } from '@xyflow/react';
 import { CustomNodeData, CollectionNodeData, ValueNodeData, NodeData, ServerOperation, ServerCollection, ServerValue } from '../types/pipeline';
 import '../App.css';
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Node, Edge, useNodesState, useEdgesState, MarkerType } from 'reactflow';
+import { type Node, type Edge, useNodesState, useEdgesState, MarkerType } from '@xyflow/react';
 import { getLayoutedElements } from '../utils/layout';
 import { ServerResponse, ServerOperation, ServerCollection, ServerValue, CollectionNodeData, ValueNodeData, CustomNodeData } from '../types/pipeline';
 
@@ -11,8 +11,8 @@ import { ServerResponse, ServerOperation, ServerCollection, ServerValue, Collect
  * @returns React Flow nodes, edges, and change handlers
  */
 export function useRealtimeGraph(jobId: string) {
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [nodes, setNodes, onNodesChange] = useNodesState<Node>([] as Node[]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([] as Edge[]);
   const [, setIsLayoutReady] = useState(false);
   const [operations, setOperations] = useState<Record<string, ServerOperation>>({});
   const [collections, setCollections] = useState<Record<string, ServerCollection>>({});

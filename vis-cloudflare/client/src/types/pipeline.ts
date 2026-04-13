@@ -96,7 +96,7 @@ export interface ServerCollection {
 
 // Collection node data for React Flow
 export interface CollectionNodeData extends ServerCollection {
-  // Can add UI-only flags here later
+  [key: string]: unknown;
 }
 
 // Matches ValueMetricsSnapshot from Go
@@ -110,14 +110,14 @@ export interface ServerValue {
 // What React Flow needs inside the "data" prop
 // This is the ServerOperation directly from the backend
 export interface CustomNodeData extends ServerOperation {
-  // Can add UI-only flags here later, e.g., isSelected
   // For map_value operations: number of resolved input values
   input_values_resolved_count?: number;
+  [key: string]: unknown;
 }
 
 // Value node data for React Flow
 export interface ValueNodeData extends ServerValue {
-  // Can add UI-only flags here later
+  [key: string]: unknown;
 }
 
 // Union type for all node data types
