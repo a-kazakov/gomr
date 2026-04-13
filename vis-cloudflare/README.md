@@ -6,8 +6,7 @@ Cloudflare Pages deployment of the gomr pipeline visualization tool. Uses Pages 
 
 - **Pages + Advanced Mode** — Static assets served by Pages; a bundled `_worker.js` handles all API routes.
 - **Durable Object (`JobStatus`)** — One instance per job. Stores current status, broadcasts to WebSocket clients, manages lifecycle via alarms.
-- **KV (`JOB_ARCHIVE`)** — Cold storage for final status of destroyed jobs.
-- **KV (`GOMR_VIS`)** — Legacy namespace kept for dual-write during migration. Can be removed once all clients use WebSocket.
+- **KV (`GOMR_VIS`)** — Persistent storage. The DO archives its final status here on destruction, and hydrates from it when waking up for the first time.
 
 The Worker source lives in `src/` and is bundled into `client/dist/_worker.js` via esbuild during the build step. Pages detects `_worker.js` in the output directory and enters Advanced Mode.
 
@@ -19,23 +18,18 @@ The Worker source lives in `src/` and is bundled into `client/dist/_worker.js` v
 
 ## Setup
 
-1. Create the KV namespaces:
+1. Create the KV namespace:
 
 ```bash
-wrangler kv namespace create JOB_ARCHIVE
 wrangler kv namespace create GOMR_VIS
 ```
 
-2. Copy the returned namespace IDs into `wrangler.toml`:
+2. Copy the returned namespace ID into `wrangler.toml`:
 
 ```toml
 [[kv_namespaces]]
-binding = "JOB_ARCHIVE"
-id = "<your-archive-namespace-id>"
-
-[[kv_namespaces]]
 binding = "GOMR_VIS"
-id = "<your-legacy-namespace-id>"
+id = "<your-namespace-id>"
 ```
 
 3. Install dependencies:

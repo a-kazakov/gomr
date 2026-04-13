@@ -137,7 +137,7 @@ export default {
         );
       }
 
-      // GET /status/:jobId — read status from DO (live) or KV archive (cold)
+      // GET /status/:jobId — read status from DO (live) or KV (cold)
       const statusMatch = url.pathname.match(/^\/status\/([^/]+)$/);
       if (statusMatch && request.method === 'GET') {
         const authError = checkViewAuth(request, env);
@@ -145,7 +145,7 @@ export default {
 
         const jobId = decodeURIComponent(statusMatch[1]);
 
-        // Try live DO first
+        // Try live DO first (DO also hydrates from KV internally)
         const stub = getDOStub(env, jobId);
         const doResponse = await stub.fetch(
           new Request(
@@ -157,30 +157,15 @@ export default {
           return addCorsHeaders(doResponse);
         }
 
-        // Fall back to KV archive
-        const archived = await env.JOB_ARCHIVE.get(
-          sanitizeJobId(jobId),
-          'json',
-        );
-        if (archived) {
-          return addCorsHeaders(
-            Response.json({
-              ...(archived as object),
-              jobId,
-              source: 'archive',
-            }),
-          );
-        }
-
-        // Fall back to legacy KV
+        // Fall back to KV directly
         if (env.GOMR_VIS) {
-          const oldData = await env.GOMR_VIS.get(
+          const kvData = await env.GOMR_VIS.get(
             `job:${sanitizeJobId(jobId)}`,
             'json',
           );
-          if (oldData) {
+          if (kvData) {
             return addCorsHeaders(
-              Response.json({ jobId, status: oldData, source: 'legacy' }),
+              Response.json({ jobId, status: kvData, source: 'kv' }),
             );
           }
         }
@@ -257,23 +242,14 @@ export default {
           return addCorsHeaders(Response.json(data.status));
         }
 
-        // Fall back to KV archive
-        const archived = (await env.JOB_ARCHIVE.get(
-          sanitizeJobId(jobId),
-          'json',
-        )) as { status: unknown } | null;
-        if (archived) {
-          return addCorsHeaders(Response.json(archived.status));
-        }
-
-        // Fall back to legacy KV
+        // Fall back to KV
         if (env.GOMR_VIS) {
-          const oldData = await env.GOMR_VIS.get(
+          const kvData = await env.GOMR_VIS.get(
             `job:${sanitizeJobId(jobId)}`,
             'json',
           );
-          if (oldData) {
-            return addCorsHeaders(Response.json(oldData));
+          if (kvData) {
+            return addCorsHeaders(Response.json(kvData));
           }
         }
 
