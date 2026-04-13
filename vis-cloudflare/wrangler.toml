@@ -1,6 +1,12 @@
 name = "gomr-vis"
+main = "src/worker.ts"
 compatibility_date = "2024-12-01"
-pages_build_output_dir = "client/dist"
+
+[assets]
+directory = "./client/dist"
+binding = "ASSETS"
+html_handling = "none"
+not_found_handling = "none"
 
 [[kv_namespaces]]
 binding = "GOMR_VIS"

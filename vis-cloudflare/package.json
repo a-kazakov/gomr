@@ -3,16 +3,13 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "npm run build:client && npm run build:worker",
+    "dev": "npm run build:client && wrangler dev",
     "build:client": "cd client && npm run build",
-    "build:worker": "esbuild src/worker.ts --bundle --outfile=client/dist/_worker.js --format=esm --external:cloudflare:workers",
-    "dev": "npm run build && wrangler pages dev client/dist",
-    "deploy": "npm run build && wrangler pages deploy client/dist",
+    "deploy": "npm run build:client && wrangler deploy",
     "postinstall": "cd client && npm install"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20241205.0",
-    "esbuild": "^0.25.0",
     "typescript": "^5.0.0",
     "wrangler": "^3.99.0"
   }

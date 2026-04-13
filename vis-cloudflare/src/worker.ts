@@ -242,7 +242,7 @@ export default {
         );
       }
 
-      // --- Static assets (Pages Advanced Mode provides env.ASSETS) ---
+      // --- Static assets ---
       if (env.ASSETS) {
         const assetResponse = await env.ASSETS.fetch(request);
         if (assetResponse.status !== 404) {

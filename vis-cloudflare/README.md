@@ -1,14 +1,12 @@
 # gomr-vis-cloudflare
 
-Cloudflare Pages deployment of the gomr pipeline visualization tool. Uses Pages Advanced Mode (`_worker.js`) with Durable Objects for real-time status updates via WebSocket, and KV for cold storage of archived jobs.
+Cloudflare Worker deployment of the gomr pipeline visualization tool. Uses Durable Objects for real-time status updates via WebSocket, and KV for cold storage.
 
 ## Architecture
 
-- **Pages + Advanced Mode** — Static assets served by Pages; a bundled `_worker.js` handles all API routes.
+- **Worker** — Routes API requests and serves static assets via `[assets]` binding.
 - **Durable Object (`JobStatus`)** — One instance per job. Stores current status, broadcasts to WebSocket clients, manages lifecycle via alarms.
 - **KV (`GOMR_VIS`)** — Persistent storage. The DO archives its final status here on destruction, and hydrates from it when waking up for the first time.
-
-The Worker source lives in `src/` and is bundled into `client/dist/_worker.js` via esbuild during the build step. Pages detects `_worker.js` in the output directory and enters Advanced Mode.
 
 ## Prerequisites
 
@@ -44,7 +42,7 @@ npm install
 npm run dev
 ```
 
-This builds the client and Worker, then starts `wrangler pages dev` with local Durable Object and KV emulation.
+This builds the client and starts `wrangler dev` with local Durable Object and KV emulation.
 
 ## Deploy
 
@@ -52,13 +50,7 @@ This builds the client and Worker, then starts `wrangler pages dev` with local D
 npm run deploy
 ```
 
-This builds the client and Worker, then deploys to Cloudflare Pages via `wrangler pages deploy`.
-
-You can also deploy with a custom project name:
-
-```bash
-npm run build && wrangler pages deploy client/dist --project-name my-project
-```
+This builds the client and deploys via `wrangler deploy`.
 
 ## Configuration
 
@@ -103,7 +95,7 @@ Messages from server:
 
 ### `GET /status/:jobId`
 
-Returns current status as JSON. Checks the live Durable Object first, falls back to KV archive.
+Returns current status as JSON. Checks the live Durable Object first, falls back to KV.
 
 ```json
 {
@@ -114,9 +106,7 @@ Returns current status as JSON. Checks the live Durable Object first, falls back
 }
 ```
 
-### Legacy endpoints
-
-These are preserved for backward compatibility during migration:
+### Original endpoints
 
 - `POST /push/:jobId` — Push pipeline metrics (raw body, jobId in URL).
 - `GET /job/:jobId` — Retrieve the latest enriched snapshot (unwrapped format).
