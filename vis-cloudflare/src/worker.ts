@@ -109,6 +109,9 @@ export default {
       // GET /status/ws?jobId=X — WebSocket upgrade via DO
       // Match by path alone; the DO checks the Upgrade header itself.
       if (url.pathname === '/status/ws') {
+        const authError = checkViewAuth(request, env);
+        if (authError) return addCorsHeaders(authError);
+
         const jobId = url.searchParams.get('jobId');
         if (!jobId) {
           return addCorsHeaders(
@@ -244,6 +247,16 @@ export default {
 
       // --- Static assets ---
       if (env.ASSETS) {
+        // Auth-gate page navigations so the browser caches credentials
+        // for subsequent API/WebSocket requests on the same origin
+        const isPageNav =
+          request.method === 'GET' &&
+          request.headers.get('Accept')?.includes('text/html');
+        if (isPageNav) {
+          const authError = checkViewAuth(request, env);
+          if (authError) return authError;
+        }
+
         const assetResponse = await env.ASSETS.fetch(request);
         if (assetResponse.status !== 404) {
           return assetResponse;
