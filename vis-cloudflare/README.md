@@ -1,13 +1,15 @@
 # gomr-vis-cloudflare
 
-Cloudflare Worker deployment of the gomr pipeline visualization tool. Uses Durable Objects for real-time status updates via WebSocket, with KV for cold storage of archived jobs.
+Cloudflare Pages deployment of the gomr pipeline visualization tool. Uses Pages Advanced Mode (`_worker.js`) with Durable Objects for real-time status updates via WebSocket, and KV for cold storage of archived jobs.
 
 ## Architecture
 
-- **Worker** — Stateless router handling API requests and static asset serving.
+- **Pages + Advanced Mode** — Static assets served by Pages; a bundled `_worker.js` handles all API routes.
 - **Durable Object (`JobStatus`)** — One instance per job. Stores current status, broadcasts to WebSocket clients, manages lifecycle via alarms.
 - **KV (`JOB_ARCHIVE`)** — Cold storage for final status of destroyed jobs.
 - **KV (`GOMR_VIS`)** — Legacy namespace kept for dual-write during migration. Can be removed once all clients use WebSocket.
+
+The Worker source lives in `src/` and is bundled into `client/dist/_worker.js` via esbuild during the build step. Pages detects `_worker.js` in the output directory and enters Advanced Mode.
 
 ## Prerequisites
 
@@ -48,7 +50,7 @@ npm install
 npm run dev
 ```
 
-This builds the client and starts `wrangler dev` with local Durable Object and KV emulation.
+This builds the client and Worker, then starts `wrangler pages dev` with local Durable Object and KV emulation.
 
 ## Deploy
 
@@ -56,7 +58,13 @@ This builds the client and starts `wrangler dev` with local Durable Object and K
 npm run deploy
 ```
 
-This builds the client and deploys the Worker via `wrangler deploy`.
+This builds the client and Worker, then deploys to Cloudflare Pages via `wrangler pages deploy`.
+
+You can also deploy with a custom project name:
+
+```bash
+npm run build && wrangler pages deploy client/dist --project-name my-project
+```
 
 ## Configuration
 

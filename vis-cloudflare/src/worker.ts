@@ -115,10 +115,8 @@ export default {
       }
 
       // GET /status/ws?jobId=X — WebSocket upgrade via DO
-      if (
-        url.pathname === '/status/ws' &&
-        request.headers.get('Upgrade')?.toLowerCase() === 'websocket'
-      ) {
+      // Match by path alone; the DO checks the Upgrade header itself.
+      if (url.pathname === '/status/ws') {
         const jobId = url.searchParams.get('jobId');
         if (!jobId) {
           return addCorsHeaders(
@@ -130,13 +128,11 @@ export default {
         }
 
         const stub = getDOStub(env, jobId);
-        // Forward the upgrade request to the DO
+        // Forward the full original request to preserve WebSocket upgrade semantics
         return stub.fetch(
           new Request(
             `${url.origin}/ws?jobId=${encodeURIComponent(jobId)}`,
-            {
-              headers: request.headers,
-            },
+            request,
           ),
         );
       }
@@ -286,14 +282,18 @@ export default {
         );
       }
 
-      // --- Static assets ---
-      const assetResponse = await env.ASSETS.fetch(request);
-      if (assetResponse.status !== 404) {
-        return assetResponse;
+      // --- Static assets (Pages Advanced Mode provides env.ASSETS) ---
+      if (env.ASSETS) {
+        const assetResponse = await env.ASSETS.fetch(request);
+        if (assetResponse.status !== 404) {
+          return assetResponse;
+        }
+
+        // SPA fallback: serve index.html for unmatched routes
+        return env.ASSETS.fetch(new Request(`${url.origin}/index.html`));
       }
 
-      // SPA fallback: serve index.html for unmatched routes
-      return env.ASSETS.fetch(new Request(`${url.origin}/index.html`));
+      return new Response('Not Found', { status: 404 });
     } catch (error) {
       const message =
         error instanceof Error ? error.message : 'Unknown error';
