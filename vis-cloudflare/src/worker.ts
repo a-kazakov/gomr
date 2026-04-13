@@ -103,14 +103,6 @@ export default {
           ),
         );
 
-        // Dual-write to KV for cold reads
-        if (env.GOMR_VIS) {
-          await env.GOMR_VIS.put(
-            `job:${sanitizeJobId(body.jobId)}`,
-            JSON.stringify(body.status),
-          ).catch(() => {});
-        }
-
         return addCorsHeaders(doResponse);
       }
 
@@ -203,14 +195,6 @@ export default {
             },
           ),
         );
-
-        // Dual-write to KV
-        if (env.GOMR_VIS) {
-          await env.GOMR_VIS.put(
-            `job:${sanitizeJobId(jobId)}`,
-            JSON.stringify(rawBody),
-          ).catch(() => {});
-        }
 
         return addCorsHeaders(
           Response.json({
