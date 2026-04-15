@@ -9,10 +9,12 @@ import (
 )
 
 type Reader struct {
-	ioReader       io.Reader
-	nextKeyVersion int64
-	nextKey        []byte
-	peekKeyBuffer  []byte
+	ioReader        io.Reader
+	nextKeyVersion  int64
+	nextKey         []byte
+	peekKeyBuffer   []byte
+	keyLengthBuf    [2]byte // reusable buffer for reading key length without heap allocation
+	valueLengthBuf  [4]byte // reusable buffer for reading value length without heap allocation
 }
 
 func NewReader(fileReader io.Reader) *Reader {
@@ -26,9 +28,7 @@ func NewReader(fileReader io.Reader) *Reader {
 }
 
 func (r *Reader) loadKey() {
-	var keyLengthBuffer [2]byte
-	keyLengthBufferSlice := keyLengthBuffer[:]
-	_, err := io.ReadFull(r.ioReader, keyLengthBufferSlice)
+	_, err := io.ReadFull(r.ioReader, r.keyLengthBuf[:])
 	if err != nil {
 		if err != io.EOF {
 			must.OK(err).Else("error reading key length")
@@ -37,7 +37,7 @@ func (r *Reader) loadKey() {
 		r.nextKeyVersion += 1
 		return
 	}
-	keyLength := int(binary.NativeEndian.Uint16(keyLengthBuffer[:]))
+	keyLength := int(binary.NativeEndian.Uint16(r.keyLengthBuf[:]))
 	if keyLength == 0 {
 		return
 	}
@@ -53,14 +53,12 @@ func (r *Reader) readValue(expectedKeyVersion int64, p []byte) (int, error) {
 	if expectedKeyVersion != r.nextKeyVersion {
 		return 0, io.EOF
 	}
-	var valueLengthBuffer [4]byte
-	valueLengthBufferSlice := valueLengthBuffer[:]
 	ioReader := r.ioReader
-	_, err := io.ReadFull(ioReader, valueLengthBufferSlice)
+	_, err := io.ReadFull(ioReader, r.valueLengthBuf[:])
 	if err != nil {
 		must.OK(err).Else("error reading value length")
 	}
-	valueLength := int(binary.NativeEndian.Uint32(valueLengthBufferSlice))
+	valueLength := int(binary.NativeEndian.Uint32(r.valueLengthBuf[:]))
 	_, err = io.ReadFull(ioReader, p[:valueLength])
 	if err != nil {
 		must.OK(err).Else("error reading value")

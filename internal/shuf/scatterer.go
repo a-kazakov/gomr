@@ -87,7 +87,9 @@ func (s *Scatterer) flush() {
 		sortedBuffer := &s.sortedBuffers[shardId]
 		sortedBuffer.Sort(s.tempFlushBuffer)
 		writerShardId, writer := shardedFileCreator.OpenShardWriter(s.config.writeBufferSize)
-		must.BeTrue(shardId == writerShardId, "Shard ID mismatch, expected %d, got %d", shardId, writerShardId)
+		if shardId != writerShardId {
+			must.BeTrue(false, "Shard ID mismatch, expected %d, got %d", shardId, writerShardId)
+		}
 		kvWriter := kv.NewWriter(writer)
 		somethingWritten = somethingWritten || sortedBuffer.Len() > 0
 		sortedBuffer.FlushTo(kvWriter, s.tempFlushBuffer)

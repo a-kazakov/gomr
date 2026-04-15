@@ -41,13 +41,13 @@ func NewBuilder(numShards int32, mergeThreshold int, readBufferSize int, writeBu
 func (w *Builder) PushFile(file *shardedfile.ShardedFile) {
 	filePath := file.GetName()
 	fileInfo := must.NoError(os.Stat(filePath)).Else("failed to get file size")
-	slog.Debug("Pushing file", "file", file.GetName(), "fileSize", fileInfo.Size())
+	slog.Debug("Pushing file", slog.String("file", file.GetName()), slog.Int64("fileSize", fileInfo.Size()))
 	leftover := file
 	for levelIdx := range w.levels {
 		level := &w.levels[levelIdx]
 		*level = append(*level, leftover)
 		if len(*level) >= int(w.config.mergeThreshold) {
-			slog.Debug("Merging level", "level", len(*level), "mergeThreshold", w.config.mergeThreshold)
+			slog.Debug("Merging level", slog.Int("level", len(*level)), slog.Int("mergeThreshold", w.config.mergeThreshold))
 			leftover = w.merge(*level)
 			*level = (*level)[:0]
 		} else {
@@ -100,7 +100,9 @@ func (w *Builder) merge(files []*shardedfile.ShardedFile) *shardedfile.ShardedFi
 		}
 		multiReader := kv.NewMultiReader(readers)
 		writerShardId, shardWriter := creator.OpenShardWriter(w.config.writeBufferSize)
-		must.BeTrue(writerShardId == shardId, "Shard ID mismatch; processing %d, got writer for %d", shardId, writerShardId)
+		if writerShardId != shardId {
+			must.BeTrue(false, "Shard ID mismatch; processing %d, got writer for %d", shardId, writerShardId)
+		}
 		throttledWriter := NewThrottledWriter(shardWriter, w.config.targetWriteLatency)
 		kvWriter := kv.NewWriter(throttledWriter)
 		for key := multiReader.PeekKey(); key != nil; key = multiReader.PeekKey() {

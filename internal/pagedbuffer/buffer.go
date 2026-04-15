@@ -2,7 +2,7 @@ package pagedbuffer
 
 import (
 	"encoding/binary"
-	"fmt"
+	"errors"
 	"io"
 )
 
@@ -87,9 +87,11 @@ func (b *PagedBuffer) Clear() {
 	b.pages = b.pages[:0]
 }
 
+var errPagedBufferFull = errors.New("paged buffer is full")
+
 func (b *PagedBuffer) Write(p []byte) (n int, err error) {
 	if b.Size+len(p) > MAX_BUFFER_SIZE {
-		return 0, fmt.Errorf("paged buffer is full: size=%d, max size=%d", b.Size+len(p), MAX_BUFFER_SIZE)
+		return 0, errPagedBufferFull
 	}
 	initialSize := b.Size
 	for len(p) > 0 {

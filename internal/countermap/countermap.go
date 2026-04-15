@@ -10,13 +10,12 @@ import (
 // CountersMap is a thread-safe map of named atomic counters.
 // Counters are created lazily on first access via GetCounter.
 type CountersMap struct {
-	mu       *sync.Mutex
+	mu       sync.Mutex
 	counters map[string]*atomic.Int64
 }
 
 func NewCountersMap() *CountersMap {
 	return &CountersMap{
-		mu:       &sync.Mutex{},
 		counters: make(map[string]*atomic.Int64),
 	}
 }
@@ -24,6 +23,7 @@ func NewCountersMap() *CountersMap {
 func (c *CountersMap) GetCounter(name string) *atomic.Int64 {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+
 	counter, ok := c.counters[name]
 	if !ok {
 		counter = &atomic.Int64{}
