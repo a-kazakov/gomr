@@ -3,9 +3,9 @@ module github.com/a-kazakov/gomr/test
 go 1.26
 
 require (
-	github.com/a-kazakov/gomr v0.0.4
-	github.com/a-kazakov/gomr/extensions/fileio v0.0.4
-	github.com/a-kazakov/gomr/extensions/fileio/s3backend v0.0.4
+	github.com/a-kazakov/gomr v0.0.5
+	github.com/a-kazakov/gomr/extensions/fileio v0.0.5
+	github.com/a-kazakov/gomr/extensions/fileio/s3backend v0.0.5
 	github.com/aws/aws-sdk-go-v2 v1.41.1
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.7
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.96.0
