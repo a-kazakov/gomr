@@ -1,10 +1,13 @@
 package test
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -180,4 +183,78 @@ func TestS3Integration(t *testing.T) {
 		t.Errorf("expected both TMAX and TMIN records, got: %v", elements)
 	}
 	t.Logf("verified output: %d TMAX + %d TMIN records, all valid", elements["TMAX"], elements["TMIN"])
+}
+
+// TestS3ReaderDownloadsAndCleansUp verifies that the S3 reader (1) downloads the
+// full object to scratch space before the caller reads, (2) returns the correct
+// bytes, and (3) removes the temp file on Close.
+func TestS3ReaderDownloadsAndCleansUp(t *testing.T) {
+	faker := gofakes3.New(s3mem.New())
+	ts := httptest.NewServer(faker.Server())
+	defer ts.Close()
+
+	client := s3.New(s3.Options{
+		BaseEndpoint: aws.String(ts.URL),
+		Credentials:  credentials.NewStaticCredentialsProvider("test", "test", ""),
+		Region:       "us-east-1",
+		UsePathStyle: true,
+	})
+	if _, err := client.CreateBucket(context.Background(), &s3.CreateBucketInput{
+		Bucket: aws.String("dl-test"),
+	}); err != nil {
+		t.Fatalf("failed to create fake bucket: %v", err)
+	}
+
+	// Upload a payload larger than a typical single read buffer so we can see
+	// that the content is fully materialized before any reads happen.
+	payload := bytes.Repeat([]byte("gomr-payload-chunk-"), 50_000) // ~950 KB
+	if _, err := client.PutObject(context.Background(), &s3.PutObjectInput{
+		Bucket: aws.String("dl-test"),
+		Key:    aws.String("blob.bin"),
+		Body:   bytes.NewReader(payload),
+	}); err != nil {
+		t.Fatalf("failed to put object: %v", err)
+	}
+
+	// Snapshot the temp directory before Open so we can detect leftovers.
+	before, err := filepath.Glob(filepath.Join(os.TempDir(), "s3dl-*.bin"))
+	if err != nil {
+		t.Fatalf("pre-glob failed: %v", err)
+	}
+
+	reader, err := fileio.Open("s3://dl-test/blob.bin", s3backend.WithS3Client(client))
+	if err != nil {
+		t.Fatalf("Open failed: %v", err)
+	}
+
+	// After Open returns, the full object must already be on disk in scratch
+	// space — we should see exactly one new s3dl-*.bin file.
+	during, err := filepath.Glob(filepath.Join(os.TempDir(), "s3dl-*.bin"))
+	if err != nil {
+		t.Fatalf("during-glob failed: %v", err)
+	}
+	if len(during)-len(before) != 1 {
+		t.Fatalf("expected exactly one new scratch file after Open, before=%d during=%d", len(before), len(during))
+	}
+
+	got, err := io.ReadAll(reader)
+	if err != nil {
+		t.Fatalf("ReadAll failed: %v", err)
+	}
+	if !bytes.Equal(got, payload) {
+		t.Fatalf("content mismatch: got %d bytes, want %d bytes", len(got), len(payload))
+	}
+
+	if err := reader.Close(); err != nil {
+		t.Fatalf("Close failed: %v", err)
+	}
+
+	// After Close, the scratch file must be gone.
+	after, err := filepath.Glob(filepath.Join(os.TempDir(), "s3dl-*.bin"))
+	if err != nil {
+		t.Fatalf("post-glob failed: %v", err)
+	}
+	if len(after) != len(before) {
+		t.Fatalf("scratch file leaked after Close: before=%d after=%d", len(before), len(after))
+	}
 }

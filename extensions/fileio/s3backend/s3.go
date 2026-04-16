@@ -6,16 +6,22 @@ import (
 	"io"
 	"os"
 	"path"
-	"github.com/bmatcuk/doublestar/v4"
 	"strings"
 	"sync"
 
 	"github.com/a-kazakov/gomr/extensions/fileio"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/bmatcuk/doublestar/v4"
 	"github.com/oklog/ulid/v2"
 )
+
+// DownloadPartSize is the chunk size used by the S3 Downloader for parallel
+// range-based downloads. Each part is fetched with its own GetObject call,
+// which is independently retried by the S3 client's retryer on transient errors.
+const DownloadPartSize = 64 * 1024 * 1024
 
 var (
 	defaultClient     *s3.Client
@@ -62,17 +68,58 @@ func (b *s3Backend) ensureClient() *s3.Client {
 	return DefaultClient()
 }
 
+// Open downloads the entire object to a temp file in the scratch space using
+// the S3 Downloader (64 MB chunks, parallel, with per-chunk retries from the
+// client's retryer), then returns a reader over the local file. The temp file
+// is removed when the returned ReadCloser is closed.
 func (b *s3Backend) Open(filePath string) (io.ReadCloser, error) {
 	client := b.ensureClient()
 	bucket, key := ParsePath(filePath)
-	output, err := client.GetObject(context.Background(), &s3.GetObjectInput{
+
+	tempFilePath := path.Join(os.TempDir(), fmt.Sprintf("s3dl-%s.bin", ulid.Make().String()))
+	file, err := os.OpenFile(tempFilePath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create temp file for S3 download: %w", err)
+	}
+
+	downloader := manager.NewDownloader(client, func(d *manager.Downloader) {
+		d.PartSize = DownloadPartSize
+	})
+	_, err = downloader.Download(context.Background(), file, &s3.GetObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to get s3://%s/%s: %w", bucket, key, err)
+		file.Close()
+		os.Remove(tempFilePath)
+		return nil, fmt.Errorf("failed to download s3://%s/%s: %w", bucket, key, err)
 	}
-	return output.Body, nil
+
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		file.Close()
+		os.Remove(tempFilePath)
+		return nil, fmt.Errorf("failed to rewind temp file for s3://%s/%s: %w", bucket, key, err)
+	}
+
+	return &s3Reader{file: file}, nil
+}
+
+// s3Reader reads from a locally-downloaded temp file and deletes it on Close.
+type s3Reader struct {
+	file *os.File
+}
+
+func (r *s3Reader) Read(p []byte) (int, error) {
+	return r.file.Read(p)
+}
+
+func (r *s3Reader) Close() error {
+	closeErr := r.file.Close()
+	removeErr := os.Remove(r.file.Name())
+	if closeErr != nil {
+		return closeErr
+	}
+	return removeErr
 }
 
 func (b *s3Backend) Create(filePath string) (io.WriteCloser, error) {
